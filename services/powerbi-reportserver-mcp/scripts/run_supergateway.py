@@ -23,8 +23,14 @@ def record(event, **details):
 def start(args, name, env=None):
     log = (root / 'runtime' / (name + '.log')).open('ab', buffering=0)
     logs.append(log)
-    child = subprocess.Popen(args, cwd=root, env=env, stdin=subprocess.PIPE, stdout=log, stderr=log,
-                             creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+    record('child_starting', name=name, executable=str(args[0]))
+    try:
+        child = subprocess.Popen(args, cwd=root, env=env, stdin=subprocess.PIPE, stdout=log, stderr=log,
+                                 creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+    except OSError as error:
+        record('child_start_failed', name=name, executable=str(args[0]),
+               winerror=getattr(error, 'winerror', None), error=str(error))
+        raise
     children.append(child)
     names[child.pid] = name
     record('child_started', name=name, pid=child.pid)

@@ -40,6 +40,10 @@ $files = @('supervisor.log','caddy.log','fedaraka-powerbi-modeling.log','fedarak
 foreach ($name in $files) {
     $path = Join-Path $service ('runtime\' + $name)
     if (Test-Path -LiteralPath $path) {
+        if ($name -eq 'supervisor.log') {
+            Write-Host '--- Recent supervisor lifecycle events ---'
+            Get-Content -LiteralPath $path -Tail 250 | Where-Object { $_.StartsWith('{') } | Select-Object -Last 12 | ForEach-Object { Write-Host $_ }
+        }
         Write-Host "--- Last 25 lines: $name ---"
         Get-Content -LiteralPath $path -Tail 25 | ForEach-Object {
             $line = $_ -replace '(?i)(Bearer\s+)[A-Za-z0-9._~+/-]+=*','$1[REDACTED]'
