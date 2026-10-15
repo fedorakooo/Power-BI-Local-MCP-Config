@@ -12,7 +12,13 @@ from urllib.parse import urlsplit
 NAMES = ('modeling', 'reportserver', 'authoring', 'desktop')
 
 
-def configure(root, settings_path, node, validate_only=False):
+def configure(root, settings_path, node, validate_only=False, progress=False):
+    total = 4 if validate_only else 10
+    def emit(completed, status):
+        if progress:
+            print('PBIMCP_PROGRESS ' + json.dumps(dict(activity='Deployment configuration',
+                completed=completed, total=total, status=status)), flush=True)
+    emit(0, 'Validate portal, ports, network allowlist and report aliases')
     root = Path(root).resolve()
     settings = json.loads(Path(settings_path).read_text(encoding='utf-8-sig'))
     service = root / 'services/powerbi-reportserver-mcp'
@@ -41,6 +47,7 @@ def configure(root, settings_path, node, validate_only=False):
         import re
         if not re.fullmatch(r'[A-Za-z0-9_-]{1,80}', settings[key]):
             raise ValueError('Invalid ' + key)
+    emit(1, 'Locate the configured source PBIX')
     source = (root / settings['report_file']).resolve()
     if not source.is_relative_to(root / 'reports') or source.suffix.lower() != '.pbix':
         raise ValueError(f'report_file must point to a PBIX inside {root / "reports"}; received: {source}')
@@ -48,6 +55,7 @@ def configure(root, settings_path, node, validate_only=False):
         raise ValueError(f'Source PBIX not found: {source}. Pull the included validation report from GitHub, '
                          'or copy your Report Server compatible PBIX into reports/ and update report_file in '
                          f'{Path(settings_path).resolve()}.')
+    emit(2, 'Verify pinned Microsoft and gateway dependency manifests')
     for name, dependency, version in (
         ('modeling', '@microsoft/powerbi-modeling-mcp', '1.0.0'),
         ('gateway', 'supergateway', '4.1.0'),
@@ -58,6 +66,7 @@ def configure(root, settings_path, node, validate_only=False):
             raise ValueError('Unexpected dependency pin: ' + dependency)
         if not (service/name/'pnpm-lock.yaml').is_file():
             raise ValueError('Missing dependency lockfile: ' + name)
+    emit(3, 'Hash the source PBIX and verify report/model ZIP content')
     report_hash = hashlib.sha256(source.read_bytes()).hexdigest()
     with zipfile.ZipFile(source) as archive:
         if archive.testzip() or 'Report/Layout' not in archive.namelist() or 'DataModel' not in archive.namelist():
@@ -66,15 +75,18 @@ def configure(root, settings_path, node, validate_only=False):
               'backend_ports': list(range(port+1, port+5)), 'allowed_addresses': allowed,
               'report_sha256': report_hash, 'project_alias': settings['project_alias']}
     if validate_only:
+        emit(4, 'Configuration and source PBIX verified')
         return dict(result, status='configuration_valid_no_changes')
     if not Path(node).is_file():
         raise ValueError('Node.js executable not found')
+    emit(4, 'Prepare working report without overwriting an edited copy')
     runtime = service/'runtime'
     release = runtime/'release'
     release.mkdir(parents=True, exist_ok=True)
     working = release/source.name
     if not working.exists():
         shutil.copyfile(source, working)
+    emit(5, 'Generate actor scopes and Desktop report enrollment')
     credential = runtime/'pbirs-credential.xml'
     actors = {name: {'scopes': ['read', 'backup', 'publish'], 'reports': [settings['report_alias']],
                      'credential_path': str(credential)} for name in ('local-operator', 'fedaraka')}
@@ -87,6 +99,7 @@ def configure(root, settings_path, node, validate_only=False):
     config_path = service/'config.local.json'
     config_path.write_text(json.dumps(config, indent=2), encoding='utf-8')
     (runtime/'gateway-paths.json').write_text(json.dumps({'node': str(Path(node).resolve())}))
+    emit(6, 'Locate Modeling MCP and generate four gateway commands')
     binaries = list((service/'modeling/node_modules/.pnpm').rglob('powerbi-modeling-mcp.exe'))
     if len(binaries) != 1:
         raise ValueError('Expected one installed pinned Modeling MCP binary')
@@ -101,6 +114,7 @@ def configure(root, settings_path, node, validate_only=False):
     manifest = {'mcpServers': {f'fedaraka-powerbi-{name}': dict(command, port=port+i+1)
                               for i, (name, command) in enumerate(zip(NAMES, commands))}}
     (service/'gateway/servers.local.json').write_text(json.dumps(manifest, indent=2))
+    emit(7, 'Generate IP-restricted Caddy routes')
     routes = []
     for i, name in enumerate(NAMES):
         routes.append(f'        handle_path /fedaraka-powerbi-{name}/* {{\n            reverse_proxy 127.0.0.1:{port+i+1} {{\n                flush_interval -1\n            }}\n        }}')
@@ -108,6 +122,7 @@ def configure(root, settings_path, node, validate_only=False):
     caddy += f':{port} {{\n    @allowed remote_ip ' + ' '.join(allowed) + '\n    handle @allowed {\n'
     caddy += '\n'.join(routes) + '\n    }\n    respond "Forbidden" 403\n}\n'
     (service/'gateway/Caddyfile').write_text(caddy)
+    emit(8, 'Generate client MCP endpoints and Codex configuration')
     generated = root/'generated'
     generated.mkdir(exist_ok=True)
     aliases = ('powerbi_modeling_local', 'powerbi_reportserver_local', 'powerbi_reportauthoring_local', 'powerbi_desktop_local')
@@ -115,8 +130,10 @@ def configure(root, settings_path, node, validate_only=False):
     toml = '\n'.join(f'[mcp_servers.{alias}]\nurl = "{url}"\nstartup_timeout_sec = 60\ntool_timeout_sec = 120\n' +
         ('enabled_tools = ["connection_operations", "database_operations", "model_operations", "table_operations", "column_operations", "relationship_operations", "measure_operations", "dax_query_operations", "transaction_operations"]\n' if alias == 'powerbi_modeling_local' else '')
         for alias, url in urls.items())
+    emit(9, 'Write Codex settings and endpoint inventory')
     (generated/'codex-mcp.toml').write_text(toml)
     (generated/'endpoints.json').write_text(json.dumps(urls, indent=2))
+    emit(10, 'Host configuration and client files generated')
     return dict(result, status='host_configuration_generated_working_pbix_preserved')
 
 
@@ -124,5 +141,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--root', required=True); parser.add_argument('--config', required=True)
     parser.add_argument('--node', default=''); parser.add_argument('--validate-only', action='store_true')
+    parser.add_argument('--progress', action='store_true')
     args = parser.parse_args()
-    print(json.dumps(configure(args.root, args.config, args.node, args.validate_only), indent=2))
+    print(json.dumps(configure(args.root, args.config, args.node, args.validate_only, args.progress), indent=2))

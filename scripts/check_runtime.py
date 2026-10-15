@@ -34,12 +34,15 @@ async def main(args):
                 async with streamablehttp_client(url) as (read, write, _):
                     async with ClientSession(read, write) as session:
                         await session.initialize()
+                        progress(args, len(inventory), f'{name}: initialized, listing tools')
                         tools = [t.name for t in (await session.list_tools()).tools]
                         if name == 'reportserver':
+                            progress(args, len(inventory), 'Report Server: verify upstream catalog access')
                             result = await session.call_tool('list_reports', {})
                             if result.isError:
                                 raise RuntimeError('Report Server catalog/authentication check failed')
                         if name == 'desktop' and not args.no_desktop:
+                            progress(args, len(inventory), 'Desktop: locate the enrolled report and inspect Bridge state')
                             worker = Worker(config)
                             try:
                                 main_window = worker.main(settings['project_alias'])
@@ -50,6 +53,7 @@ async def main(args):
                             except RuntimeError as error:
                                 if 'found 0' not in str(error):
                                     raise
+                                progress(args, len(inventory), 'Desktop: launch the enrolled report once through MCP')
                                 launched = await session.call_tool('desktop_open_enrolled_report', {'project': settings['project_alias']})
                                 if launched.isError:
                                     raise RuntimeError('Desktop launch failed; check unlocked interactive session and configured executable')

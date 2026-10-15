@@ -31,10 +31,18 @@ Generated client settings: `generated/codex-mcp.toml`.
 ## Progress tracking
 
 The launcher shows a PowerShell progress bar and numbered text messages: 16 stages
-for Setup, four for startup, two for validation. Readiness has a nested bar for the
-four MCP services and, when requested, Desktop Bridge. Waiting checks report their
-remaining startup deadline. Percentages count completed stages, not elapsed time
-or bytes downloaded; pip/pnpm retain their own output during installation.
+for Setup, four for startup, two for validation. Nested bars show prerequisite checks,
+permissions, Python installation/check/import operations, configuration files, credentials,
+task/firewall operations and MCP readiness. Imports identify each of ten modules.
+Caddy has download/checksum/extract phases and a separate byte-based download bar
+when the server provides Content-Length. Without a known size, it reports bytes received
+without inventing a percentage. Windows TLS fallback uses Windows download reporting.
+Desktop RS reports download, hash, signature, installation and final verification;
+the Microsoft installer wait reports elapsed seconds with an indeterminate bar.
+MCP checks identify initialization, tool discovery, upstream catalog access and Desktop
+launch/Bridge readiness, with remaining startup deadlines during retries.
+Stage percentages count completed operations, not time; only download bars measure bytes.
+Pip/pnpm retain their own package/download output during installation.
 On failure the current stage is printed and bars are cleared. Text messages remain
 available when progress rendering is disabled or output is redirected.
 

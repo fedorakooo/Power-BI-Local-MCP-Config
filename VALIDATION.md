@@ -31,3 +31,12 @@ failed Windows validation stopping the download, and SHA512 failure preserving t
 existing binary. A real official Caddy archive download and SHA512 verification passed.
 The Windows PowerShell HTTPS helper also downloaded the official checksum manifest.
 The reported second-machine trust environment has not been tested remotely.
+
+## Nested operation progress — 2026-10-16
+
+Windows PowerShell parsing and ValidateOnly passed with the shared structured-event renderer.
+The four configuration tests and two Caddy regression tests passed. Real Caddy download
+and checksum verification produced 21 phase/byte progress events. All ten dependency imports
+completed with individual progress. Desktop RS's already-installed fast path emitted valid
+progress; a fresh MSI installation was not rerun. Task/firewall operations were not repeated
+solely to test their display labels.
