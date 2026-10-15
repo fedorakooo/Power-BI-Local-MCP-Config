@@ -91,10 +91,11 @@ if ($ValidateOnly) {
 }
 $identity = [Security.Principal.WindowsIdentity]::GetCurrent().Name
 if ($Setup) {
-    Start-DeploymentStage 'Check administrator, licenses, Node.js and pnpm'
+    Start-DeploymentStage 'Check prerequisites, configuration and source PBIX'
     $principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
     if (!$principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'Run initial -Setup in elevated PowerShell under the SAME Windows user who will operate Desktop.' }
     if (!$AcceptMicrosoftEula) { throw 'Review the Microsoft Desktop/Modeling MCP licenses; use -AcceptMicrosoftEula only after acceptance.' }
+    Invoke-Checked $Python @($configure,'--root',$root,'--config',$Config,'--validate-only')
     $nodeCommand = Get-Command node.exe -ErrorAction SilentlyContinue
     if (!$nodeCommand) { throw 'Install Node.js LTS with npm, reopen PowerShell, then repeat Setup.' }
     if (!(Get-Command pnpm.cmd -ErrorAction SilentlyContinue)) {

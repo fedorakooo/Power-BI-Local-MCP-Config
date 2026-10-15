@@ -42,8 +42,12 @@ def configure(root, settings_path, node, validate_only=False):
         if not re.fullmatch(r'[A-Za-z0-9_-]{1,80}', settings[key]):
             raise ValueError('Invalid ' + key)
     source = (root / settings['report_file']).resolve()
-    if not source.is_relative_to(root / 'reports') or source.suffix.lower() != '.pbix' or not source.is_file():
-        raise ValueError('report_file must be an existing PBIX inside reports/')
+    if not source.is_relative_to(root / 'reports') or source.suffix.lower() != '.pbix':
+        raise ValueError(f'report_file must point to a PBIX inside {root / "reports"}; received: {source}')
+    if not source.is_file():
+        raise ValueError(f'Source PBIX not found: {source}. Public GitHub sources do not include report data. '
+                         'Copy your Report Server compatible PBIX into reports/ and update report_file in '
+                         f'{Path(settings_path).resolve()}.')
     for name, dependency, version in (
         ('modeling', '@microsoft/powerbi-modeling-mcp', '1.0.0'),
         ('gateway', 'supergateway', '4.1.0'),

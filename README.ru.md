@@ -56,6 +56,11 @@ notepad C:\PowerBI-MCP\deployment.local.json
 автоматически не создаётся. Рабочая копия появляется в
 `services\powerbi-reportserver-mcp\runtime\release`; повторный Setup её не перезаписывает.
 
+Если появляется `Source PBIX not found`, проверьте имя и путь: для файла
+`C:\PowerBI-MCP\reports\MyReport.pbix` значение должно быть
+`"report_file": "reports/MyReport.pbix"`. Файл необходимо скопировать самостоятельно.
+Setup проверяет его на этапе2, до установки зависимостей и остановки шлюзов.
+
 ## 4. Первая установка — одна команда
 
 Откройте PowerShell **от имени администратора под тем же пользователем**, который
