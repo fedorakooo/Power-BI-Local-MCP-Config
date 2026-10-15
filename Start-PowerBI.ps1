@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [switch]$Setup, [switch]$ValidateOnly, [switch]$Status, [switch]$Stop,
+    [switch]$Setup, [switch]$ValidateOnly, [switch]$Status, [switch]$Stop, [switch]$Diagnose,
     [switch]$AcceptMicrosoftEula, [switch]$NoDesktop, [switch]$ResetCredential,
     [string]$Python, [string]$CredentialPath,
     [string]$Config
@@ -20,6 +20,10 @@ $digest = [Security.Cryptography.SHA256]::Create()
 try { $suffix = ([BitConverter]::ToString($digest.ComputeHash([Text.Encoding]::UTF8.GetBytes($root.ToLowerInvariant())))).Replace('-','').Substring(0,8) }
 finally { $digest.Dispose() }
 $taskName = 'Fedaraka-PowerBI-MCP-' + $suffix
+if ($Diagnose) {
+    & (Join-Path $root 'scripts\Diagnose-Startup.ps1') -Root $root -TaskName $taskName
+    return
+}
 
 function Invoke-Checked([string]$Executable, [string[]]$Arguments) {
     & $Executable @Arguments | ForEach-Object {
@@ -221,7 +225,7 @@ if ($task.State -ne 'Running') {
     if (Get-NetTCPConnection -State Listen -LocalPort ([int]$settings.frontend_port) -ErrorAction SilentlyContinue) { throw 'Frontend port is occupied by another installation. Choose another frontend_port and rerun Setup.' }
     Start-ScheduledTask -TaskName $taskName
 }
-Set-DeploymentDetail 1 1 'Gateway task running; verify service readiness next'
+Set-DeploymentDetail 1 1 'Gateway start requested; verify service readiness next'
 Start-DeploymentStage 'Check MCP services, Report Server and Desktop readiness'
 $arguments = @((Join-Path $root 'scripts\check_runtime.py'),'--root',$root,'--config',$Config,'--progress')
 if ($NoDesktop) { $arguments += '--no-desktop' }
@@ -230,6 +234,9 @@ Write-Progress -Id 10 -Activity $script:progressActivity -Status 'All stages com
 Write-Host "Ready. Task: $taskName. Client configuration: $root\generated\codex-mcp.toml"
 } catch {
     Write-Host "FAILED at stage [$script:progressStep/$script:progressTotal]: $script:progressStage" -ForegroundColor Red
+    if ($script:progressStage -eq 'Check MCP services, Report Server and Desktop readiness') {
+        & (Join-Path $root 'scripts\Diagnose-Startup.ps1') -Root $root -TaskName $taskName
+    }
     throw
 } finally {
     Write-Progress -Id 12 -Activity 'Download' -Completed

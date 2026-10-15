@@ -67,6 +67,21 @@ deployment folder; the launcher does not silently replace its environment.
 
 ## Operational limits
 
+### Gateway startup diagnostics
+
+For a readiness timeout or `All connection attempts failed`, run:
+
+```powershell
+powershell.exe -NoProfile -File C:\PowerBI-MCP\Start-PowerBI.ps1 -Diagnose
+```
+
+This read-only command reports the scheduled task state/result, local listeners,
+required executable paths and bounded gateway log tails. It does not print credentials
+or full configuration files. Readiness failures also invoke these diagnostics automatically.
+The supervisor records startup errors and child exit codes in `runtime/supervisor.log`
+under the service folder. Requesting a scheduled task start does not prove the gateway
+is listening; MCP readiness remains the success gate.
+
 ### Corporate TLS certificates
 
 Caddy downloads use verified Python TLS with system roots plus certifi. If Python
