@@ -12,7 +12,8 @@ if destination.is_relative_to(root):
 files = [root / name for name in (
     'Start-PowerBI.ps1', 'deployment.example.json', '.gitignore', 'README.ru.md', 'VALIDATION.md',
     'scripts/configure_deployment.py', 'scripts/check_runtime.py', 'scripts/test_deployment.py',
-    'scripts/build_bundle.py', 'reports/Fedaraka Server Automated.pbix')]
+    'scripts/build_bundle.py', 'scripts/Select-Python.ps1', 'scripts/Test-PythonSelection.ps1', 'scripts/probe_python.py',
+    'README.md', '.gitattributes', 'LICENSE', 'reports/Fedaraka Server Automated.pbix')]
 if not (root / 'reports/Fedaraka Server Automated.pbix').is_file():
     raise SystemExit('Supply your reviewed PBIX in reports/ before building a private deployment ZIP')
 files += [service / name for name in (

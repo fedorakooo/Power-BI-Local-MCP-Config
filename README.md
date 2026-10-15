@@ -10,7 +10,7 @@ Desktop Bridge dependencies, and Supergateway HTTP transport behind an IP-restri
 See the [step-by-step Russian instructions](README.ru.md).
 
 1. Copy this repository to `C:\PowerBI-MCP`.
-2. Install Python 3.12 and Node.js LTS.
+2. Install stable Windows CPython x64 (3.10 or newer) and Node.js LTS.
 3. Supply your own Report Server compatible PBIX in `reports/`.
 4. Copy `deployment.example.json` to `deployment.local.json`; replace the example portal,
    report GUID and report file with your values.
@@ -27,6 +27,25 @@ powershell.exe -NoProfile -File C:\PowerBI-MCP\Start-PowerBI.ps1
 ```
 
 Generated client settings: `generated/codex-mcp.toml`.
+
+## Python selection
+
+There is no exact Python 3.12 requirement. Selection order is an explicit `-Python`
+path, an existing deployment environment, the Python launcher's installed runtimes
+(default first), then real Python executables on PATH. Microsoft Store aliases are
+skipped on PATH. No Python installation or system-default change is performed.
+
+```powershell
+py -0p
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\PowerBI-MCP\Start-PowerBI.ps1 -Setup -AcceptMicrosoftEula -Python "C:\path\to\python.exe"
+```
+
+Runtime eligibility (stable CPython 3.10+, Windows x64) is checked first. Setup then
+installs the pinned dependencies, runs `pip check`, and imports the Windows/MCP modules.
+An eligible interpreter is not a guarantee that every pinned dependency supports it.
+The full Power BI workflow was validated on 3.12; discovery/selection was additionally
+checked with installed 3.15. Changing an existing deployment's Python requires a new
+deployment folder; the launcher does not silently replace its environment.
 
 ## Operational limits
 

@@ -45,16 +45,16 @@ if (!(Test-Path -LiteralPath $Config)) {
 }
 $Config = (Resolve-Path -LiteralPath $Config).Path
 $settings = Get-Content -LiteralPath $Config -Raw | ConvertFrom-Json
-if (!$Python -and (Test-Path -LiteralPath $venvPython)) { $Python = $venvPython }
-if (!$Python) {
-    if (Get-Command py.exe -ErrorAction SilentlyContinue) { $Python = & py.exe -3.12 -c 'import sys; print(sys.executable)' }
-    else {
-        $candidate = Get-Command python.exe -ErrorAction SilentlyContinue
-        if ($candidate -and $candidate.Source -notlike '*WindowsApps*') { $Python = $candidate.Source }
+. (Join-Path $root 'scripts\Select-Python.ps1')
+$pythonInfo = Select-PowerBIPython -Requested $Python -ExistingVenv $venvPython
+$Python = $pythonInfo.executable
+Write-Host "Selected Python $($pythonInfo.version) x64: $Python"
+if (Test-Path -LiteralPath $venvPython) {
+    $environmentInfo = Get-PowerBIPython $venvPython
+    if ($environmentInfo.base_executable -ne $pythonInfo.base_executable) {
+        throw 'This deployment already uses a different Python installation. Omit -Python to reuse it, or use a new deployment folder to select another runtime.'
     }
 }
-if (!$Python -or !(Test-Path -LiteralPath $Python)) { throw 'Install Python 3.12, or pass -Python C:\path\python.exe.' }
-Invoke-Checked $Python @('-c','import sys; assert sys.version_info[:2] == (3,12), "Python 3.12 required"')
 $configure = Join-Path $root 'scripts\configure_deployment.py'
 if ($ValidateOnly) {
     Invoke-Checked $Python @($configure,'--root',$root,'--config',$Config,'--validate-only')
@@ -80,6 +80,8 @@ if ($Setup) {
     Stop-OwnedProcesses
     if (!(Test-Path -LiteralPath $venvPython)) { Invoke-Checked $Python @('-m','venv',(Join-Path $service '.venv')) }
     Invoke-Checked $venvPython @('-m','pip','install','-r',(Join-Path $service 'requirements-lock.txt'))
+    Invoke-Checked $venvPython @('-m','pip','check')
+    Invoke-Checked $venvPython @((Join-Path $root 'scripts\probe_python.py'),'--check-dependencies')
     foreach ($dependency in @('modeling','gateway','bridge')) {
         Invoke-Checked $pnpm @('--dir',(Join-Path $service $dependency),'install','--frozen-lockfile')
     }
