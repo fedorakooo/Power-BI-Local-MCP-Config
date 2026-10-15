@@ -22,3 +22,11 @@ Windows PowerShell parsing and the two-stage ValidateOnly path passed. Structure
 readiness progress passed against all four local HTTP MCP services with a real
 Report Server catalog read and no report writes or Desktop launch. The full Setup
 was not rerun for these display changes.
+
+## Caddy certificate-chain handling — 2026-10-16
+
+Regression tests passed for Python certificate failure selecting Windows validation,
+failed Windows validation stopping the download, and SHA512 failure preserving the
+existing binary. A real official Caddy archive download and SHA512 verification passed.
+The Windows PowerShell HTTPS helper also downloaded the official checksum manifest.
+The reported second-machine trust environment has not been tested remotely.

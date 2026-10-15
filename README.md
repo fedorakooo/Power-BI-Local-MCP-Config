@@ -59,6 +59,23 @@ deployment folder; the launcher does not silently replace its environment.
 
 ## Operational limits
 
+### Corporate TLS certificates
+
+Caddy downloads use verified Python TLS with system roots plus certifi. If Python
+reports a certificate-chain validation failure on Windows, the installer retries
+through Windows PowerShell/.NET certificate validation. Both paths verify TLS;
+the official archive SHA512 is checked before replacing the executable.
+
+If your proxy's CA is not trusted, ask your administrator to configure Windows trust
+or supply an approved PEM bundle for this process:
+
+```powershell
+$env:POWERBI_MCP_CA_BUNDLE = 'C:\certificates\corporate-ca.pem'
+```
+
+Repeat Setup after updating trust. The variable applies to the Caddy Python downloader,
+not every tool in the installation. GitHub release assets and redirects must also be reachable.
+
 Desktop requires an unlocked interactive Windows session. The Save MCP tool invokes Windows
 UI Automation internally. Publication requires an operator-issued one-use approval.
 The HTTP transport defaults to loopback access; remote use requires explicit network rules
