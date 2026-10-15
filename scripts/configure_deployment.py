@@ -45,8 +45,8 @@ def configure(root, settings_path, node, validate_only=False):
     if not source.is_relative_to(root / 'reports') or source.suffix.lower() != '.pbix':
         raise ValueError(f'report_file must point to a PBIX inside {root / "reports"}; received: {source}')
     if not source.is_file():
-        raise ValueError(f'Source PBIX not found: {source}. Public GitHub sources do not include report data. '
-                         'Copy your Report Server compatible PBIX into reports/ and update report_file in '
+        raise ValueError(f'Source PBIX not found: {source}. Pull the included validation report from GitHub, '
+                         'or copy your Report Server compatible PBIX into reports/ and update report_file in '
                          f'{Path(settings_path).resolve()}.')
     for name, dependency, version in (
         ('modeling', '@microsoft/powerbi-modeling-mcp', '1.0.0'),

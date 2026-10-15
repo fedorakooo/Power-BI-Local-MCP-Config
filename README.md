@@ -11,7 +11,7 @@ See the [step-by-step Russian instructions](README.ru.md).
 
 1. Copy this repository to `C:\PowerBI-MCP`.
 2. Install stable Windows CPython x64 (3.10 or newer) and Node.js LTS.
-3. Supply your own Report Server compatible PBIX in `reports/`.
+3. Use the included `reports/Fedaraka Server Automated.pbix`, or supply another compatible PBIX.
 4. Copy `deployment.example.json` to `deployment.local.json`; replace the example portal,
    report GUID and report file with your values.
 5. Run elevated under the Windows user who will operate Desktop, after accepting Microsoft licenses:
@@ -81,6 +81,7 @@ UI Automation internally. Publication requires an operator-issued one-use approv
 The HTTP transport defaults to loopback access; remote use requires explicit network rules
 and HTTPS/authentication appropriate to your environment.
 
-PBIX data, saved credentials, local configurations and runtime environments are excluded.
+The owner-authorized validation PBIX, including its report data, is included publicly.
+Saved credentials, local configurations and runtime environments are excluded.
 Microsoft dependencies remain governed by their respective licenses.
 See [verification scope](VALIDATION.md).

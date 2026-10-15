@@ -1,5 +1,9 @@
-# Bring your own report
+# Validation report
 
-PBIX files and report data are excluded from this public repository. Supply a reviewed
-Report Server compatible PBIX here and set report_file in deployment.local.json.
-The example expects Fedaraka Server Automated.pbix. Do not commit report data.
+The owner authorized publication of `Fedaraka Server Automated.pbix`, including report data.
+This is the validated Report Server compatible seed used by deployment.example.json.
+SHA256: `ba44a423162888f742a956f76410c13b344aa95aa984ba8838aebcd13edc623e`.
+
+Other PBIX files remain ignored. Configure the real Report Server portal and target GUID
+in deployment.local.json before installation. The launcher creates a separate runtime
+working copy; updates to this seed do not overwrite an existing edited working report.
