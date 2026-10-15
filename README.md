@@ -28,6 +28,16 @@ powershell.exe -NoProfile -File C:\PowerBI-MCP\Start-PowerBI.ps1
 
 Generated client settings: `generated/codex-mcp.toml`.
 
+## Progress tracking
+
+The launcher shows a PowerShell progress bar and numbered text messages: 16 stages
+for Setup, four for startup, two for validation. Readiness has a nested bar for the
+four MCP services and, when requested, Desktop Bridge. Waiting checks report their
+remaining startup deadline. Percentages count completed stages, not elapsed time
+or bytes downloaded; pip/pnpm retain their own output during installation.
+On failure the current stage is printed and bars are cleared. Text messages remain
+available when progress rendering is disabled or output is redirected.
+
 ## Python selection
 
 There is no exact Python 3.12 requirement. Selection order is an explicit `-Python`

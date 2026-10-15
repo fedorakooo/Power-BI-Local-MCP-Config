@@ -38,6 +38,32 @@ if ($Status) {
     if (Test-Path (Join-Path $runtime 'last-startup.json')) { Get-Content (Join-Path $runtime 'last-startup.json') }
     return
 }
+$script:progressStep = 0
+$script:progressTotal = if ($ValidateOnly) { 2 } elseif ($Setup) { 16 } else { 4 }
+$script:progressStage = ''
+$script:progressActivity = if ($ValidateOnly) { 'Power BI MCP configuration check' } elseif ($Setup) { 'Power BI MCP setup' } else { 'Power BI MCP startup' }
+function Start-DeploymentStage([string]$Name) {
+    $script:progressStep++
+    $script:progressStage = $Name
+    $percent = [int][Math]::Floor(100 * ($script:progressStep - 1) / $script:progressTotal)
+    Write-Host "[$script:progressStep/$script:progressTotal] $Name"
+    Write-Progress -Id 10 -Activity $script:progressActivity -Status $Name -PercentComplete $percent
+}
+function Invoke-Readiness([string]$Executable, [string[]]$Arguments) {
+    try {
+        & $Executable @Arguments | ForEach-Object {
+            $line = [string]$_
+            if ($line.StartsWith('PBIMCP_PROGRESS ')) {
+                $event = $line.Substring(16) | ConvertFrom-Json
+                Write-Progress -Id 11 -ParentId 10 -Activity 'MCP readiness' -Status $event.status -PercentComplete ([int][Math]::Floor(100 * $event.completed / $event.total))
+                Write-Host "  [MCP $($event.completed)/$($event.total)] $($event.status)"
+            } else { Write-Output $_ }
+        }
+        if ($LASTEXITCODE -ne 0) { throw "Readiness check failed, exit=$LASTEXITCODE" }
+    } finally { Write-Progress -Id 11 -Activity 'MCP readiness' -Completed }
+}
+try {
+Start-DeploymentStage 'Read configuration and select Python'
 if (!(Test-Path -LiteralPath $Config)) {
     if ($ValidateOnly) { $Config = Join-Path $root 'deployment.example.json' }
     elseif ($Setup) { Copy-Item -LiteralPath (Join-Path $root 'deployment.example.json') -Destination $Config }
@@ -57,11 +83,15 @@ if (Test-Path -LiteralPath $venvPython) {
 }
 $configure = Join-Path $root 'scripts\configure_deployment.py'
 if ($ValidateOnly) {
+    Start-DeploymentStage 'Validate deployment configuration and PBIX'
     Invoke-Checked $Python @($configure,'--root',$root,'--config',$Config,'--validate-only')
+    Write-Progress -Id 10 -Activity $script:progressActivity -Status 'Configuration verified' -PercentComplete 100
+    Write-Host 'Configuration check completed successfully.'
     return
 }
 $identity = [Security.Principal.WindowsIdentity]::GetCurrent().Name
 if ($Setup) {
+    Start-DeploymentStage 'Check administrator, licenses, Node.js and pnpm'
     $principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
     if (!$principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'Run initial -Setup in elevated PowerShell under the SAME Windows user who will operate Desktop.' }
     if (!$AcceptMicrosoftEula) { throw 'Review the Microsoft Desktop/Modeling MCP licenses; use -AcceptMicrosoftEula only after acceptance.' }
@@ -73,27 +103,36 @@ if ($Setup) {
     }
     $pnpm = (Get-Command pnpm.cmd -ErrorAction Stop).Source
     if ((& $pnpm --version).Trim() -ne '11.25.0') { throw 'Install the pinned pnpm: npm install --global pnpm@11.25.0' }
+    Start-DeploymentStage 'Protect runtime folders and stop this deployment'
     New-Item -ItemType Directory -Path $runtime,(Join-Path $service 'runtime') -Force | Out-Null
     foreach ($folder in @($runtime,(Join-Path $service 'runtime'))) {
         Invoke-Checked 'icacls.exe' @($folder,'/inheritance:r','/grant:r',"${identity}:(OI)(CI)F",'SYSTEM:(OI)(CI)F')
     }
     Stop-OwnedProcesses
+    Start-DeploymentStage 'Create or reuse Python virtual environment'
     if (!(Test-Path -LiteralPath $venvPython)) { Invoke-Checked $Python @('-m','venv',(Join-Path $service '.venv')) }
+    Start-DeploymentStage 'Install and verify Python dependencies'
     Invoke-Checked $venvPython @('-m','pip','install','-r',(Join-Path $service 'requirements-lock.txt'))
     Invoke-Checked $venvPython @('-m','pip','check')
     Invoke-Checked $venvPython @((Join-Path $root 'scripts\probe_python.py'),'--check-dependencies')
     foreach ($dependency in @('modeling','gateway','bridge')) {
+        Start-DeploymentStage "Install $dependency dependencies"
         Invoke-Checked $pnpm @('--dir',(Join-Path $service $dependency),'install','--frozen-lockfile')
     }
+    Start-DeploymentStage 'Install or verify ReportingServicesTools'
     if (!(Get-Module -ListAvailable ReportingServicesTools | Where-Object { $_.Version -eq [version]'0.0.9.3' })) {
         Invoke-Checked 'powershell.exe' @('-NoProfile','-File',(Join-Path $service 'scripts\Install-ReportingServicesTools.ps1'))
     }
+    Start-DeploymentStage 'Install or verify Power BI Desktop RS (may take several minutes)'
     Invoke-Checked 'powershell.exe' @('-NoProfile','-File',(Join-Path $service 'scripts\Install-ReportServerDesktop.ps1'),'-AcceptEula')
+    Start-DeploymentStage 'Download and verify Caddy'
     Invoke-Checked $venvPython @((Join-Path $service 'scripts\install_caddy.py'))
+    Start-DeploymentStage 'Generate host configuration and MCP client settings'
     Invoke-Checked $venvPython @($configure,'--root',$root,'--config',$Config,'--node',$nodeCommand.Source)
     $serviceConfig = Join-Path $service 'config.local.json'
     Invoke-Checked 'icacls.exe' @($serviceConfig,'/inheritance:r','/grant:r',"${identity}:F",'SYSTEM:F')
     $credential = Join-Path $service 'runtime\pbirs-credential.xml'
+    Start-DeploymentStage 'Configure Report Server credentials (complete the Windows dialog if shown)'
     if ($CredentialPath) {
         # Explicit same-user DPAPI import for local migration; never included in distributable ZIP.
         $savedCredential = Import-Clixml -LiteralPath (Resolve-Path -LiteralPath $CredentialPath).Path
@@ -102,6 +141,7 @@ if ($Setup) {
     } elseif ($ResetCredential -or !(Test-Path -LiteralPath $credential)) {
         Invoke-Checked 'powershell.exe' @('-NoProfile','-File',(Join-Path $service 'scripts\Set-PbirsCredential.ps1'),'-ConfigPath',$serviceConfig)
     }
+    Start-DeploymentStage 'Register startup task and firewall rules'
     $pythonScript = Join-Path $service 'scripts\run_supergateway.py'
     $action = New-ScheduledTaskAction -Execute $venvPython -Argument ('"' + $pythonScript + '"') -WorkingDirectory $service
     $trigger = New-ScheduledTaskTrigger -AtLogOn -User $identity
@@ -120,17 +160,27 @@ if ($Setup) {
     New-NetFirewallRule -Name ($taskName+'-Backends') -DisplayName ($taskName+' private backends') -Direction Inbound -Action Block -Protocol TCP -LocalPort $backendPorts -RemoteAddress Any -Profile Any -ErrorAction Stop | Out-Null
     @{identity=$identity; task=$taskName; config=$Config; settings_sha256=(Get-FileHash -LiteralPath $Config -Algorithm SHA256).Hash} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $runtime 'installation.json') -Encoding UTF8
 }
+if (!$Setup) { Start-DeploymentStage 'Verify existing installation and configuration' }
 if (!(Test-Path -LiteralPath (Join-Path $runtime 'installation.json'))) { throw 'Initial Setup has not completed.' }
 $installation = Get-Content (Join-Path $runtime 'installation.json') -Raw | ConvertFrom-Json
 if ($installation.identity -ne $identity) { throw 'Use the Windows user who performed Setup; DPAPI and Desktop are user-scoped.' }
 if ($installation.config -ne $Config) { throw 'Configuration path changed. Rerun Setup with this config before starting.' }
 if ($installation.settings_sha256 -ne (Get-FileHash -LiteralPath $Config -Algorithm SHA256).Hash) { throw 'Deployment settings changed. Rerun Setup to regenerate paths, ports and firewall rules.' }
+Start-DeploymentStage 'Start HTTP gateways'
 $task = Get-ScheduledTask -TaskName $taskName -ErrorAction Stop
 if ($task.State -ne 'Running') {
     if (Get-NetTCPConnection -State Listen -LocalPort ([int]$settings.frontend_port) -ErrorAction SilentlyContinue) { throw 'Frontend port is occupied by another installation. Choose another frontend_port and rerun Setup.' }
     Start-ScheduledTask -TaskName $taskName
 }
-$arguments = @((Join-Path $root 'scripts\check_runtime.py'),'--root',$root,'--config',$Config)
+Start-DeploymentStage 'Check MCP services, Report Server and Desktop readiness'
+$arguments = @((Join-Path $root 'scripts\check_runtime.py'),'--root',$root,'--config',$Config,'--progress')
 if ($NoDesktop) { $arguments += '--no-desktop' }
-Invoke-Checked $venvPython $arguments
+Invoke-Readiness $venvPython $arguments
+Write-Progress -Id 10 -Activity $script:progressActivity -Status 'All stages completed' -PercentComplete 100
 Write-Host "Ready. Task: $taskName. Client configuration: $root\generated\codex-mcp.toml"
+} catch {
+    Write-Host "FAILED at stage [$script:progressStep/$script:progressTotal]: $script:progressStage" -ForegroundColor Red
+    throw
+} finally {
+    Write-Progress -Id 10 -Activity $script:progressActivity -Completed
+}

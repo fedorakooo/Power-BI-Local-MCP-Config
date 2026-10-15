@@ -15,3 +15,10 @@ invalid explicit-path rejection without fallback, and automatic launcher discove
 Local interpreters used: CPython3.12 and CPython3.15 x64. Installed dependency imports
 passed on3.12; a complete dependency install and Power BI workflow on3.15 was not run.
 Four existing deployment configuration tests also passed after this change.
+
+## Progress tracking — 2026-10-16
+
+Windows PowerShell parsing and the two-stage ValidateOnly path passed. Structured
+readiness progress passed against all four local HTTP MCP services with a real
+Report Server catalog read and no report writes or Desktop launch. The full Setup
+was not rerun for these display changes.
