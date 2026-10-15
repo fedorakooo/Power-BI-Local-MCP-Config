@@ -1,0 +1,5 @@
+{
+  "name": "fedaraka-powerbi-desktop-bridge",
+  "private": true,
+  "dependencies": { "@microsoft/powerbi-desktop-bridge-cli": "1.0.0" }
+}

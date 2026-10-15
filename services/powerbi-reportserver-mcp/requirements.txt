@@ -1,0 +1,8 @@
+mcp==1.26.0
+uvicorn==0.40.0
+opentelemetry-sdk==1.39.1
+opentelemetry-exporter-otlp-proto-http==1.39.1
+jsonschema==4.26.0
+referencing==0.37.0
+pywinauto==0.6.9
+Pillow==12.3.0

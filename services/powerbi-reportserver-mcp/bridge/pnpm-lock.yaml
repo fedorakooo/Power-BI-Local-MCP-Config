@@ -1,0 +1,39 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .:
+    dependencies:
+      '@microsoft/powerbi-desktop-bridge-cli':
+        specifier: 1.0.0
+        version: 1.0.0
+
+packages:
+
+  '@microsoft/powerbi-desktop-bridge-cli@1.0.0':
+    resolution: {integrity: sha512-hDkGzJIrHYucbL7I14MYKS8p4ZE3Vq9kiCJdK9S0uEs+85RZpZc66vjWgZJcOKf600IFpL5p30JiXGzL64jlJw==}
+    engines: {node: '>=20'}
+    hasBin: true
+
+  commander@13.1.0:
+    resolution: {integrity: sha512-/rFeCpNJQbhSZjGVwO9RFV3xPqbnERS8MmIQzCtD/zl6gpJuV/bMLuN92oG3F7d8oDEHHRrujSXNUr8fpjntKw==}
+    engines: {node: '>=18'}
+
+  vscode-jsonrpc@8.2.1:
+    resolution: {integrity: sha512-kdjOSJ2lLIn7r1rtrMbbNCHjyMPfRnowdKjBQ+mGq6NAW5QY2bEZC/khaC5OR8svbbjvLEaIXkOq45e2X9BIbQ==}
+    engines: {node: '>=14.0.0'}
+
+snapshots:
+
+  '@microsoft/powerbi-desktop-bridge-cli@1.0.0':
+    dependencies:
+      commander: 13.1.0
+      vscode-jsonrpc: 8.2.1
+
+  commander@13.1.0: {}
+
+  vscode-jsonrpc@8.2.1: {}

@@ -1,0 +1,8 @@
+{
+  "name": "stair-powerbi-modeling-local",
+  "private": true,
+  "version": "0.1.0",
+  "dependencies": {
+    "@microsoft/powerbi-modeling-mcp": "1.0.0"
+  }
+}

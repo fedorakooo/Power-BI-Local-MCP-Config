@@ -1,0 +1,82 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .:
+    dependencies:
+      '@microsoft/powerbi-modeling-mcp':
+        specifier: 1.0.0
+        version: 1.0.0
+
+packages:
+
+  '@microsoft/powerbi-modeling-mcp-darwin-arm64@1.0.0':
+    resolution: {integrity: sha512-nrz+gFe7w7oDzgpUuct18NdMNMiYwSgTjc5RplsYzAUMYy5p8CmiObakH51cFrEvAtqKQXG4FY/SVAoE7/stSQ==}
+    engines: {node: '>=18.0.0'}
+    cpu: [arm64]
+    os: [darwin]
+    hasBin: true
+
+  '@microsoft/powerbi-modeling-mcp-linux-arm64@1.0.0':
+    resolution: {integrity: sha512-IJGxSqR1u7dj2J4dvnHaoFzUrfL4J/zMF++T/66AoU3Jr6eWwGozISGL6TGN6mCTnm3N4xWEjSmzLHXmJIT8Tw==}
+    engines: {node: '>=18.0.0'}
+    cpu: [arm64]
+    os: [linux]
+    hasBin: true
+
+  '@microsoft/powerbi-modeling-mcp-linux-x64@1.0.0':
+    resolution: {integrity: sha512-r/sAkb7AkM32q9+7msOeyJRU4UHgWJTIWO9xmJvlv0A3zPI1Qa16LAZEbJgmdwnuapYkga+5hR3zS+diKyIXgw==}
+    engines: {node: '>=18.0.0'}
+    cpu: [x64]
+    os: [linux]
+    hasBin: true
+
+  '@microsoft/powerbi-modeling-mcp-win32-arm64@1.0.0':
+    resolution: {integrity: sha512-b1H2XHNWjQXN0vRrMcG31jelfleGItxi5OtDaocB0j3jyDuTQPrBwtWAZ4QBI5Z3sUy5+S0tYz+wYO/pH72R2g==}
+    engines: {node: '>=18.0.0'}
+    cpu: [arm64]
+    os: [win32]
+    hasBin: true
+
+  '@microsoft/powerbi-modeling-mcp-win32-x64@1.0.0':
+    resolution: {integrity: sha512-GiZ2kRG3T7SLEKqh9STbhAZ7luJXBwWwSXEXFFd+7i0kVTVtoTNxXsmjNAmjFwpMNMyFkhoaUx0VcEYyHsCQsA==}
+    engines: {node: '>=18.0.0'}
+    cpu: [x64]
+    os: [win32]
+    hasBin: true
+
+  '@microsoft/powerbi-modeling-mcp@1.0.0':
+    resolution: {integrity: sha512-purQLCSiXeUlFGdioqBNfSnr/aSo03D3gJhM2zjKtRWx6bmQg/SbE0N+0WEcxvS1wd3BRtG2z5IxUnLjWYlb2Q==}
+    engines: {node: '>=18.0.0'}
+    cpu: [x64, arm64]
+    os: [win32, darwin, linux]
+    hasBin: true
+
+snapshots:
+
+  '@microsoft/powerbi-modeling-mcp-darwin-arm64@1.0.0':
+    optional: true
+
+  '@microsoft/powerbi-modeling-mcp-linux-arm64@1.0.0':
+    optional: true
+
+  '@microsoft/powerbi-modeling-mcp-linux-x64@1.0.0':
+    optional: true
+
+  '@microsoft/powerbi-modeling-mcp-win32-arm64@1.0.0':
+    optional: true
+
+  '@microsoft/powerbi-modeling-mcp-win32-x64@1.0.0':
+    optional: true
+
+  '@microsoft/powerbi-modeling-mcp@1.0.0':
+    optionalDependencies:
+      '@microsoft/powerbi-modeling-mcp-darwin-arm64': 1.0.0
+      '@microsoft/powerbi-modeling-mcp-linux-arm64': 1.0.0
+      '@microsoft/powerbi-modeling-mcp-linux-x64': 1.0.0
+      '@microsoft/powerbi-modeling-mcp-win32-arm64': 1.0.0
+      '@microsoft/powerbi-modeling-mcp-win32-x64': 1.0.0

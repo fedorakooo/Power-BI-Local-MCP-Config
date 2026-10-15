@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+.pytest_cache/
+runtime/
+config.local.json
+*.log
+modeling/node_modules/
+mcpServers.local.json
+gateway/node_modules/
+gateway/servers.local.json
+bridge/node_modules/

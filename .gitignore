@@ -1,0 +1,20 @@
+deployment.local.json
+runtime/
+generated/
+services/**/.venv/
+services/**/node_modules/
+services/**/runtime/
+services/**/config.local.json
+services/**/servers.local.json
+**/__pycache__/
+
+# Private artifacts
+*.pbix
+*.pbit
+*.zip
+*.pem
+*.key
+.env
+.env.*
+**/pbirs-credential.xml
+**/.pytest_cache/
