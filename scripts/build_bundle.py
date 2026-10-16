@@ -13,7 +13,9 @@ files = [root / name for name in (
     'Start-PowerBI.ps1', 'deployment.example.json', '.gitignore', 'README.ru.md', 'VALIDATION.md',
     'scripts/configure_deployment.py', 'scripts/check_runtime.py', 'scripts/test_deployment.py',
     'scripts/build_bundle.py', 'scripts/Select-Python.ps1', 'scripts/Test-PythonSelection.ps1', 'scripts/probe_python.py', 'scripts/Diagnose-Startup.ps1', 'scripts/Test-ReportServer.ps1', 'scripts/Test-Desktop.ps1', 'scripts/Stop-PortListeners.ps1', 'scripts/Write-StairEndpoints.ps1',
-    'README.md', '.gitattributes', 'LICENSE', 'reports/Fedaraka Server Automated.pbix')]
+    'README.md', '.gitattributes', 'LICENSE', 'reports/Fedaraka Server Automated.pbix',
+    'headless/README.md', 'headless/VALIDATION.md', 'headless/config.example.json',
+    'scripts/Install-TestSSAS.ps1', 'scripts/Test-HeadlessSSAS.ps1')]
 if not (root / 'reports/Fedaraka Server Automated.pbix').is_file():
     raise SystemExit('Supply your reviewed PBIX in reports/ before building a private deployment ZIP')
 files += [service / name for name in (

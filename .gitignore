@@ -19,3 +19,6 @@ services/**/servers.local.json
 .env.*
 **/pbirs-credential.xml
 **/.pytest_cache/
+headless/config.local.json
+headless/projects/
+tools/

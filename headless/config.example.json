@@ -1,0 +1,14 @@
+{
+  "release_root": "C:\\PowerBI-MCP\\services\\powerbi-reportserver-mcp\\runtime\\release",
+  "headless_build_root": "C:\\PowerBI-MCP\\runtime\\headless-builds",
+  "headless_compiler": "C:\\PowerBI-MCP\\tools\\pbi-tools\\pbi-tools.core.exe",
+  "headless_compiler_sha256": "REPLACE_WITH_REVIEWED_COMPILER_SHA256",
+  "headless_dotnet_root": "C:\\PowerBI-MCP\\tools\\dotnet",
+  "headless_projects": {
+    "sales-report": {
+      "source_root": "C:\\PowerBI-MCP\\headless\\projects\\sales-report",
+      "report_version": "1.28",
+      "connection_string": "Data Source=ssas.example.com:23831;Initial Catalog=SalesAnalytics;Cube=Model"
+    }
+  }
+}
