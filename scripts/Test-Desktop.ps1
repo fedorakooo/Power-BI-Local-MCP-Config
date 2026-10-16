@@ -47,11 +47,16 @@ if ($Launch) {
     else { Write-Host 'Desktop process is still running; inspect any visible startup message.' }
     Get-Process PBIDesktop -ErrorAction SilentlyContinue | Select-Object Id,SessionId,MainWindowTitle | Format-List | Out-Host
 }
-Write-Host '=== Recent Windows application faults mentioning Power BI ==='
-$faults = @(Get-WinEvent -FilterHashtable @{LogName='Application'; Id=1000,1001,1026; StartTime=(Get-Date).AddHours(-4)} -MaxEvents 200 -ErrorAction SilentlyContinue | Where-Object { $_.Message -match 'PBIDesktop|msmdsrv|Power BI|msedgewebview2' } | Select-Object -First 4)
+Write-Host '=== Windows, memory and .NET Framework ==='
+Get-CimInstance Win32_OperatingSystem | Select-Object Caption,Version,OSArchitecture,@{Name='RAM_GB';Expression={[Math]::Round($_.TotalVisibleMemorySize/1MB,1)}},@{Name='FreeRAM_GB';Expression={[Math]::Round($_.FreePhysicalMemory/1MB,1)}} | Format-List | Out-Host
+Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full' -ErrorAction SilentlyContinue | Select-Object Version,Release | Format-List | Out-Host
+Write-Host '=== Recent Windows application and .NET faults mentioning Power BI or Mashup ==='
+$faults = @(Get-WinEvent -FilterHashtable @{LogName='Application'; Id=1000,1001,1026; StartTime=(Get-Date).AddHours(-4)} -MaxEvents 200 -ErrorAction SilentlyContinue | Where-Object { $_.Message -match 'PBIDesktop|msmdsrv|Power BI|msedgewebview2|Microsoft\.Mashup' } | Select-Object -First 6)
 if ($faults.Count) {
     foreach ($fault in $faults) {
-        [pscustomobject]@{Time=$fault.TimeCreated; Provider=$fault.ProviderName; Id=$fault.Id; Message=$fault.Message.Substring(0,[Math]::Min(2500,$fault.Message.Length))} | Format-List | Out-Host
+        $message = $fault.Message.Substring(0,[Math]::Min(8000,$fault.Message.Length))
+        $message = $message -replace '(?i)((?:password|passwd|access_token|refresh_token|client_secret)\s*[=:]\s*)[^\s,;]+','$1[REDACTED]'
+        [pscustomobject]@{Time=$fault.TimeCreated; Provider=$fault.ProviderName; Id=$fault.Id; Message=$message} | Format-List | Out-Host
     }
 } else { Write-Host 'No matching application fault found in the last four hours.' }
 $node = (Get-Content (Join-Path $service 'runtime\gateway-paths.json') -Raw | ConvertFrom-Json).node
