@@ -41,6 +41,34 @@ requires it. An already-running gateway task is reused unless -Restart is specif
 
 Generated client settings: `generated/codex-mcp.toml`.
 
+## One-command startup and STAIR URLs
+
+After Setup, start/restart all MCP gateways and print externally advertised URLs:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\PowerBI-MCP\Start-PowerBI.ps1 -Restart -PublicHost windows-mcp.example.com
+```
+
+Use the Windows MCP machine's real DNS/IP for PublicHost. The command checks all four
+services, the Report Server catalog and Desktop, then prints four Streamable HTTP URLs
+through the shared frontend port. It saves `generated/stair-endpoints.json` and remembers
+PublicHost for subsequent runs. If none was supplied or saved, it advertises the local
+computer name; confirm that STAIR can resolve it. Internal backend ports are informational
+and remain blocked for remote access.
+
+For initial STAIR network access, apply the known egress sources with one Setup command:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\PowerBI-MCP\Start-PowerBI.ps1 -Setup -AcceptMicrosoftEula -PublicHost windows-mcp.example.com -StairAddresses "192.0.2.10,192.0.2.11"
+```
+
+Replace example addresses with actual STAIR egress IPs/CIDRs. This updates the proxy and
+Windows firewall allowlist; loopback is retained. External routing/firewalls must also
+permit the frontend TCP port. Endpoint export does not prove connectivity from STAIR.
+The current trusted-network pilot uses authentication=None; see the HTTPS/authentication
+operational limits before wider exposure. Register each URL as a separate STAIR toolset
+using the names printed by the launcher.
+
 ## Progress tracking
 
 The launcher shows a PowerShell progress bar and numbered text messages: 16 stages

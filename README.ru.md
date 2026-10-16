@@ -117,6 +117,22 @@ powershell.exe -NoProfile -File C:\PowerBI-MCP\Start-PowerBI.ps1
 
 ## 6. Подключите клиент
 
+Для запуска всех MCP, Supergateway и Caddy с выводом URL для STAIR используйте:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\PowerBI-MCP\Start-PowerBI.ps1 -Restart -PublicHost windows-mcp.example.com
+```
+
+Замените PublicHost на IP/DNS Windows-машины с MCP. После успешной проверки скрипт
+выведет четыре URL общего HTTP-прокси и сохранит `generated\stair-endpoints.json`.
+Адрес сохраняется для последующих запусков. Если адрес не задан и не сохранён,
+используется имя компьютера; его доступность из STAIR нужно проверить.
+
+Чтобы разрешить исходящие адреса STAIR в Caddy и firewall, добавьте к Setup параметр
+`-StairAddresses "192.0.2.10,192.0.2.11"` со своими реальными IP/CIDR и `-PublicHost`.
+В STAIR выбирайте Streamable HTTP и отдельный toolset на каждый выведенный URL.
+Текущий режим без API-ключа использует IP-ограничение; вывод URL сам по себе не открывает доступ извне.
+
 Готовые секции для Codex находятся в `generated\codex-mcp.toml`. Добавьте их в
 MCP-конфигурацию клиента, заменяя одноимённые секции, а не весь конфиг.
 Перезапустите MCP-подключения / клиент; не оставляйте дубли прежних серверов.

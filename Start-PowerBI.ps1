@@ -3,6 +3,7 @@ param(
     [switch]$Setup, [switch]$ValidateOnly, [switch]$Status, [switch]$Stop, [switch]$Diagnose, [switch]$Restart,
     [switch]$AcceptMicrosoftEula, [switch]$NoDesktop, [switch]$ResetCredential,
     [string]$Python, [string]$CredentialPath,
+    [string]$PublicHost, [string[]]$StairAddresses,
     [string]$Config
 )
 $ErrorActionPreference = 'Stop'
@@ -88,6 +89,14 @@ if (!(Test-Path -LiteralPath $Config)) {
 }
 $Config = (Resolve-Path -LiteralPath $Config).Path
 $settings = Get-Content -LiteralPath $Config -Raw | ConvertFrom-Json
+if ($PublicHost -and [uri]::CheckHostName($PublicHost.Trim().Trim('[',']')) -eq [UriHostNameType]::Unknown) {
+    throw 'PublicHost must be an IP or DNS name without scheme, port or path.'
+}
+if ($StairAddresses) {
+    if (!$Setup) { throw 'Use -Setup -AcceptMicrosoftEula with -StairAddresses to regenerate the proxy allowlist and firewall rules.' }
+    $settings.allowed_addresses = @(@('127.0.0.1','::1') + @($StairAddresses | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() }) | Select-Object -Unique)
+    $settings | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $Config -Encoding UTF8
+}
 . (Join-Path $root 'scripts\Select-Python.ps1')
 Set-DeploymentDetail 1 3 'Discover and probe installed Python runtimes'
 $pythonInfo = Select-PowerBIPython -Requested $Python -ExistingVenv $venvPython
@@ -238,6 +247,7 @@ Start-DeploymentStage 'Check MCP services, Report Server and Desktop readiness'
 $arguments = @((Join-Path $root 'scripts\check_runtime.py'),'--root',$root,'--config',$Config,'--progress')
 if ($NoDesktop) { $arguments += '--no-desktop' }
 Invoke-Readiness $venvPython $arguments
+& (Join-Path $root 'scripts\Write-StairEndpoints.ps1') -Root $root -ConfigPath $Config -PublicHost $PublicHost
 Write-Progress -Id 10 -Activity $script:progressActivity -Status 'All stages completed' -PercentComplete 100
 Write-Host "Ready. Task: $taskName. Client configuration: $root\generated\codex-mcp.toml"
 } catch {

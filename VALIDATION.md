@@ -75,3 +75,10 @@ An integration check started two temporary TCP listener processes on OS-selected
 Cleanup terminated the process holding both selected ports and verified they were free.
 The separate listener process and its other ports remained accessible. Test processes
 were cleaned up afterwards. The existing active Power BI deployment was not restarted.
+
+## STAIR endpoint export — 2026-10-16
+
+Windows PowerShell exported four URLs with the supplied Windows host, the configured
+frontend port, internal backend port mapping, IP allowlist and unverified remote-access
+status. Launcher parsing passed. Endpoint export changes no STAIR platform resources.
+Access from STAIR must be tested after its actual source addresses and routing are configured.
