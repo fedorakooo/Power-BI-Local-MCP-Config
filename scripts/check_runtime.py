@@ -85,11 +85,12 @@ async def main(args):
                 if Path(state.get('currentFilePath') or '').resolve() != Path(config['desktop_reports'][settings['project_alias']]).resolve():
                     raise RuntimeError('Desktop file mismatch')
                 break
-            except Exception:
+            except Exception as error:
                 if time.monotonic() >= deadline:
-                    raise RuntimeError('Desktop readiness not confirmed; no automatic launch retry') from None
+                    raise RuntimeError('Desktop readiness not confirmed: ' + str(error) +
+                        '. Run scripts/Test-Desktop.ps1 to inspect windows and Bridge; no automatic launch retry') from None
                 if time.monotonic() - last_notice >= 5:
-                    progress(args, 4, f'Waiting for Desktop Bridge; readiness deadline in {max(0, int(deadline-time.monotonic()))}s')
+                    progress(args, 4, f'Waiting for Desktop Bridge; readiness deadline in {max(0, int(deadline-time.monotonic()))}s; last check: {error}')
                     last_notice = time.monotonic()
                 await asyncio.sleep(1)
         progress(args, 5, 'Desktop Bridge and enrolled PBIX verified')

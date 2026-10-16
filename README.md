@@ -69,6 +69,18 @@ deployment folder; the launcher does not silently replace its environment.
 
 ### Gateway startup diagnostics
 
+If all four MCP services pass but Desktop readiness times out, inspect the existing
+Desktop instances without relaunching the report:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\PowerBI-MCP\scripts\Test-Desktop.ps1
+```
+
+The command reports process IDs, session IDs, main-window titles, enrolled paths and
+official Bridge status. Check the unlocked interactive session for first-run dialogs
+and confirm the enrolled PBIX is actually loaded. `-NoDesktop` checks the four MCP
+services and upstream Report Server independently of the Desktop readiness gate.
+
 If MCP initializes but `list_reports` fails, test the upstream independently:
 
 ```powershell
