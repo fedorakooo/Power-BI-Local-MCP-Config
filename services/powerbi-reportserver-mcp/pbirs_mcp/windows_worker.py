@@ -203,7 +203,14 @@ class Win32Backend:
         self.gui.EnumChildWindows(main['hwnd'], report_view, None)
         if len(views) != 1:
             raise RuntimeError('Expected exactly one enrolled report view for Save')
-        window = self.Application(backend='uia').connect(process=main['pid']).window(handle=views[0])
+        _, view_pid = self.process.GetWindowThreadProcessId(views[0])
+        if view_pid != main['pid']:
+            raise RuntimeError('Report view process changed; no Save invoked')
+        # pywinauto.connect(process=...) probes PROCESS_QUERY_INFORMATION.
+        # A limited worker can receive Access Denied for a live elevated Desktop,
+        # which pywinauto misleadingly reports as ProcessNotFoundError. Bind the
+        # already discovered native HWND; keep the exact process/owner checks.
+        window = self.Application(backend='uia').connect(handle=views[0]).window(handle=views[0])
         buttons = [button for button in window.descendants(control_type='Button')
                    if button.element_info.automation_id == 'save' and button.is_enabled()]
         if len(buttons) != 1:
