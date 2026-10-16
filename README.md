@@ -82,6 +82,18 @@ The supervisor records startup errors and child exit codes in `runtime/superviso
 under the service folder. Requesting a scheduled task start does not prove the gateway
 is listening; MCP readiness remains the success gate.
 
+If the supervisor reports `child_start_failed` for Caddy with WinError5, while Caddy
+runs in elevated PowerShell, update the repository. Older installers retained a protected
+temporary-directory DACL when moving caddy.exe; current Setup inherits the bin folder's
+permissions and explicitly grants the deployment user read/execute. Repair an existing
+installation from elevated PowerShell under that same user:
+
+```powershell
+$deploymentUser = [Security.Principal.WindowsIdentity]::GetCurrent().Name
+icacls 'C:\PowerBI-MCP\services\powerbi-reportserver-mcp\runtime\bin\caddy.exe' /grant:r "${deploymentUser}:RX"
+powershell.exe -NoProfile -File C:\PowerBI-MCP\Start-PowerBI.ps1
+```
+
 ### Corporate TLS certificates
 
 Caddy downloads use verified Python TLS with system roots plus certifi. If Python

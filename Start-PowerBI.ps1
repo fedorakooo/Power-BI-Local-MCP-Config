@@ -167,6 +167,9 @@ if ($Setup) {
     Invoke-Checked 'powershell.exe' @('-NoProfile','-File',(Join-Path $service 'scripts\Install-ReportServerDesktop.ps1'),'-AcceptEula')
     Start-DeploymentStage 'Download and verify Caddy'
     Invoke-Checked $venvPython @((Join-Path $service 'scripts\install_caddy.py'),'--progress')
+    Set-DeploymentDetail 4 5 'Grant the Desktop user read and execute access to Caddy'
+    Invoke-Checked 'icacls.exe' @((Join-Path $service 'runtime\bin\caddy.exe'),'/grant:r',"${identity}:RX")
+    Set-DeploymentDetail 5 5 'Caddy executable permissions configured'
     Start-DeploymentStage 'Generate host configuration and MCP client settings'
     Invoke-Checked $venvPython @($configure,'--root',$root,'--config',$Config,'--node',$nodeCommand.Source,'--progress')
     $serviceConfig = Join-Path $service 'config.local.json'

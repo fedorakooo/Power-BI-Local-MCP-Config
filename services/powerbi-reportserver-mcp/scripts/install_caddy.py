@@ -1,12 +1,14 @@
 import hashlib
 import json
 import os
+import shutil
 import ssl
 import subprocess
 import sys
 import tempfile
 import urllib.error
 import urllib.request
+import uuid
 import zipfile
 from pathlib import Path
 
@@ -81,7 +83,16 @@ def install(directory):
         executable = Path(temporary)/'caddy.exe'
         with zipfile.ZipFile(archive) as package:
             executable.write_bytes(package.read('caddy.exe'))
-        executable.replace(directory/'caddy.exe')
+        # Moving out of TemporaryDirectory preserves its protected Windows DACL.
+        # Elevated installs can leave OWNER RIGHTS bound to Administrators, blocking
+        # the same user's limited scheduled task. Copy bytes into a fresh sibling so
+        # the staged executable inherits the deployment bin directory's permissions.
+        staged = directory / ('.caddy-' + uuid.uuid4().hex + '.exe')
+        try:
+            shutil.copyfile(executable, staged)
+            staged.replace(directory/'caddy.exe')
+        finally:
+            staged.unlink(missing_ok=True)
     print(f'Installed Caddy {VERSION}; official archive SHA512 verified', flush=True)
     progress(4, 4, 'Caddy installed and verified')
 

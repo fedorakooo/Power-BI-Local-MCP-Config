@@ -40,3 +40,16 @@ and checksum verification produced 21 phase/byte progress events. All ten depend
 completed with individual progress. Desktop RS's already-installed fast path emitted valid
 progress; a fresh MSI installation was not rerun. Task/firewall operations were not repeated
 solely to test their display labels.
+
+## Caddy execute permissions — 2026-10-16
+
+Reproduced a protected executable DACL with owner BUILTIN/Administrators after moving
+the binary from an elevated Python TemporaryDirectory. The installer now copies verified
+bytes into a fresh file in the destination bin directory before atomic replacement,
+so destination directory permissions are inherited. Setup also explicitly grants the
+interactive deployment user read/execute on caddy.exe.
+
+The two Caddy regression tests passed, a real archive download passed SHA512 verification,
+and the installed file's AreAccessRulesProtected changed from true to false.
+A temporary interactive scheduled task with RunLevel Limited successfully executed
+the fixed caddy.exe version command; the validation task was then removed.
