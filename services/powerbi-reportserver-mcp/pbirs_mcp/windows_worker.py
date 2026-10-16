@@ -203,9 +203,11 @@ class Win32Backend:
         self.gui.EnumChildWindows(main['hwnd'], report_view, None)
         if len(views) != 1:
             raise RuntimeError('Expected exactly one enrolled report view for Save')
-        _, view_pid = self.process.GetWindowThreadProcessId(views[0])
-        if view_pid != main['pid']:
-            raise RuntimeError('Report view process changed; no Save invoked')
+        _, main_pid = self.process.GetWindowThreadProcessId(main['hwnd'])
+        # WebView2 owns the embedded report HWND in a separate process. Verify
+        # its native parent hierarchy, not equality with the Desktop process ID.
+        if main_pid != main['pid'] or self.gui.GetAncestor(views[0], 2) != main['hwnd']:
+            raise RuntimeError('Report view ownership changed; no Save invoked')
         # pywinauto.connect(process=...) probes PROCESS_QUERY_INFORMATION.
         # A limited worker can receive Access Denied for a live elevated Desktop,
         # which pywinauto misleadingly reports as ProcessNotFoundError. Bind the
