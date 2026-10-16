@@ -39,3 +39,23 @@ Evidence files are private under `generated/headless-poc/`: `ssas-evidence.json`
 - Exercise approved publication and model/report rollback. No upload of the lab report to the production Report Server has been performed.
 - Register the new MCP/gateway/toolset only after these integration checks. Current STAIR toolsets remain on the previous configuration.
 - Review pbi-tools AGPL-3.0 licensing before packaging/distribution for customers. No modified compiler code or compiler binary is bundled here.
+
+## Unified bootstrap verification, 2026-10-16
+
+`Start-Headless.ps1 -Setup -TestBuild` completed locally using the already installed
+`PBIMCPTEST` instance. A separate pinned Python environment was created; cached compiler
+and .NET archives were hash-verified and extracted; SSAS clients were loaded successfully.
+The generated HTTP MCP at `127.0.0.1:8020/mcp` passed initialize, tools/list, inspect,
+stale-revision rejection and actual thin PBIX compilation.
+
+`powershell.exe -NoProfile -ExecutionPolicy Bypass -File Start-Headless.ps1 -Restart -TestBuild`
+also passed under Windows PowerShell 5.1. It reused the SSAS database and sources, stopped
+only its recorded MCP process and created another verified artifact. DAX results were
+0.4816 (base), 0.4979 (Cara), and 0.4916 (updated measure).
+
+Three setup tests passed: preserving edited report layout on rerun, leaving existing-mode
+sources unchanged, and refusing to adopt an unmarked source. Five existing headless scope
+tests passed. Fresh SQL installation through this new wrapper, the combined `-WithPowerBIStack`
+path on a new machine, remote access, automatic startup, and Report Server upload/rendering
+were not exercised by this bootstrap verification. The earlier dedicated SQL installer and
+Desktop RS rendering proof are separate evidence, not claims that these paths were tested here.

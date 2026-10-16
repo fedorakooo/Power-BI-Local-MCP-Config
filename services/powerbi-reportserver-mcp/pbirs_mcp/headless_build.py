@@ -134,9 +134,9 @@ class ThinReportBuilder:
         return outcome
 
 
-def build_mcp(config):
+def build_mcp(config, **settings):
     service = ThinReportBuilder(config)
-    mcp = FastMCP('Power BI Headless Thin Report Build (experimental)')
+    mcp = FastMCP('Power BI Headless Thin Report Build (experimental)', **settings)
 
     @mcp.tool(annotations={'readOnlyHint': True})
     def inspect_headless_report(project: str) -> dict:
@@ -154,5 +154,13 @@ def build_mcp(config):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', required=True)
+    parser.add_argument('--http-port', type=int)
     args = parser.parse_args()
-    build_mcp(json.loads(Path(args.config).read_text(encoding='utf-8-sig'))).run(transport='stdio')
+    settings = {}
+    if args.http_port is not None:
+        if not 1024 <= args.http_port <= 65535:
+            parser.error('HTTP port must be between 1024 and 65535')
+        # Remote access must go through the operator's authenticated proxy.
+        settings = dict(host='127.0.0.1', port=args.http_port)
+    build_mcp(json.loads(Path(args.config).read_text(encoding='utf-8-sig')), **settings).run(
+        transport='streamable-http' if args.http_port is not None else 'stdio')

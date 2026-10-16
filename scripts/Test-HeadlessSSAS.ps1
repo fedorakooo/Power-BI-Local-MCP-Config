@@ -3,6 +3,7 @@ param(
     [Parameter(Mandatory=$true)][string]$ClientDirectory,
     [switch]$CreateSyntheticModel,
     [switch]$DeployTestMeasure,
+    [switch]$EnsureSyntheticModel,
     [string]$EvidencePath
 )
 $ErrorActionPreference = 'Stop'
@@ -19,7 +20,7 @@ $tom = New-Object Microsoft.AnalysisServices.Tabular.Server
 try {
     $tom.Connect('Data Source=' + $Server + ';Integrated Security=SSPI;')
     $database = $tom.Databases.FindByName($databaseName)
-    if ($CreateSyntheticModel) {
+    if ($CreateSyntheticModel -or ($EnsureSyntheticModel -and !$database)) {
         if ($database) { throw 'Lab database already exists; refusing to replace it.' }
         $database = New-Object Microsoft.AnalysisServices.Tabular.Database
         $database.ID = $databaseName; $database.Name = $databaseName; $database.CompatibilityLevel = 1500
@@ -52,7 +53,7 @@ try {
     }
     if (!$database) { throw 'Synthetic lab database not found.' }
     if ($database.Model.Annotations.Find('McpHeadlessLab').Value -ne 'synthetic-test-data-only') { throw 'Database is not the enrolled synthetic lab.' }
-    if ($DeployTestMeasure) {
+    if ($DeployTestMeasure -or ($EnsureSyntheticModel -and !$database.Model.Tables.Find('Sales').Measures.Find('Win Rate % v2'))) {
         $table = $database.Model.Tables.Find('Sales')
         if ($table.Measures.Find('Win Rate % v2')) { throw 'Test measure already exists; refusing to overwrite it.' }
         $measure = New-Object Microsoft.AnalysisServices.Tabular.Measure

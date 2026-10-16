@@ -7,6 +7,11 @@ Desktop Bridge dependencies, and Supergateway HTTP transport behind an IP-restri
 
 ## Setup
 
+For the new Desktop-free SSAS/thin-report experiment, use the single entry point
+[`Start-Headless.ps1`](Start-Headless.ps1). See [Russian setup commands and limits](headless/SETUP.ru.md).
+It can also start the existing four MCP services and Supergateway/Caddy with `-WithPowerBIStack`.
+The headless HTTP endpoint remains local until an authenticated remote proxy is configured.
+
 See the [step-by-step Russian instructions](README.ru.md).
 
 1. Copy this repository to `C:\PowerBI-MCP`.

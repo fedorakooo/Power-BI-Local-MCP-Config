@@ -1,0 +1,9 @@
+{
+  "mode": "lab",
+  "http_port": 8020,
+  "ssas_server": "",
+  "source_root": "",
+  "connection_string": "",
+  "report_version": "1.28",
+  "project": "headless-lab"
+}
