@@ -60,10 +60,12 @@ try {
     # Do not send upstream HTML, authentication headers, or report content to the model.
     $status = $null
     $code = $null
+    $networkStatus = $null
     $failure = $_
     $exception = $failure.Exception
     $body = $failure.ErrorDetails.Message
     while ($exception) {
+        if ($exception -is [Net.WebException]) { $networkStatus = $exception.Status.ToString() }
         if ($exception.Response) {
             $status = [int]$exception.Response.StatusCode
             try {
@@ -80,6 +82,6 @@ try {
         $candidate = [string]$upstream.error.code
         if ($candidate -match '^[a-zA-Z0-9_.-]{1,120}$') { $code = $candidate }
     } catch { }
-    @{ error = 'Report Server operation failed'; exception_type = $failure.Exception.GetType().Name; http_status = $status; upstream_code = $code } | ConvertTo-Json -Compress
+    @{ error = 'Report Server operation failed'; exception_type = $failure.Exception.GetType().Name; http_status = $status; upstream_code = $code; network_status = $networkStatus } | ConvertTo-Json -Compress
     exit 1
 }

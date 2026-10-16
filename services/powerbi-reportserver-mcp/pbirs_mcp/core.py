@@ -54,7 +54,7 @@ class PowerShellBackend:
         except (ValueError, TypeError):
             raise RuntimeError('PowerShell bridge failed; verify module installation and Windows identity') from None
         if result.returncode or 'error' in data:
-            raise RuntimeError('PBIRS failure: ' + str(data.get('http_status')) + ' ' + str(data.get('exception_type')) + ' code=' + str(data.get('upstream_code')))
+            raise RuntimeError('PBIRS failure: ' + str(data.get('http_status')) + ' ' + str(data.get('exception_type')) + ' code=' + str(data.get('upstream_code')) + ' network=' + str(data.get('network_status')))
         return data
 
 

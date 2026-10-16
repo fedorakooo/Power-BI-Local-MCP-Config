@@ -69,6 +69,18 @@ deployment folder; the launcher does not silently replace its environment.
 
 ### Gateway startup diagnostics
 
+If MCP initializes but `list_reports` fails, test the upstream independently:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\PowerBI-MCP\scripts\Test-ReportServer.ps1
+```
+
+This reports the actual generated portal, a TCP check, and one read-only authenticated
+catalog request using the saved credential. It catches unchanged example URLs and reports
+HTTP status or WebException network status without printing passwords or upstream bodies.
+It does not require a gateway restart. Correct portal/report settings in deployment.local.json
+and rerun Setup when configuration is wrong; changing only the example JSON has no effect.
+
 For a readiness timeout or `All connection attempts failed`, run:
 
 ```powershell

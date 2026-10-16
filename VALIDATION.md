@@ -53,3 +53,11 @@ The two Caddy regression tests passed, a real archive download passed SHA512 ver
 and the installed file's AreAccessRulesProtected changed from true to false.
 A temporary interactive scheduled task with RunLevel Limited successfully executed
 the fixed caddy.exe version command; the validation task was then removed.
+
+## Upstream Report Server diagnosis — 2026-10-16
+
+The independent PowerShell upstream test passed TCP and saved-credential catalog access
+against the existing local deployment, returning only a report count. A closed local
+TCP port produced network_status=ConnectFailure with no upstream response body.
+Readiness now preserves a failed list_reports result and stops repeating the upstream
+catalog call once that tool reports failure.

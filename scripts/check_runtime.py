@@ -29,6 +29,7 @@ async def main(args):
         url = f"http://127.0.0.1:{settings['frontend_port']}/fedaraka-powerbi-{name}/mcp"
         deadline = time.monotonic()+60
         last_notice = time.monotonic()
+        upstream_failure = None
         while True:
             try:
                 async with streamablehttp_client(url) as (read, write, _):
@@ -40,7 +41,9 @@ async def main(args):
                             progress(args, len(inventory), 'Report Server: verify upstream catalog access')
                             result = await session.call_tool('list_reports', {})
                             if result.isError:
-                                raise RuntimeError('Report Server catalog/authentication check failed')
+                                details = ' '.join(item.text for item in result.content if item.type == 'text')[:500]
+                                upstream_failure = 'Report Server catalog check failed: ' + details
+                                raise RuntimeError(upstream_failure)
                         if name == 'desktop' and not args.no_desktop:
                             progress(args, len(inventory), 'Desktop: locate the enrolled report and inspect Bridge state')
                             worker = Worker(config)
@@ -61,6 +64,8 @@ async def main(args):
                         progress(args, len(inventory), f'{name} ready: {len(tools)} tools')
                         break
             except Exception:
+                if upstream_failure:
+                    raise RuntimeError(upstream_failure) from None
                 # Only retry initialization/readiness, never retry Desktop launch.
                 if name == 'desktop' or time.monotonic() >= deadline:
                     raise
