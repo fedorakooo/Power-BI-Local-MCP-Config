@@ -67,8 +67,6 @@ try {
     if ([int]$settings.http_port -lt 1024 -or [int]$settings.http_port -gt 65535) { throw 'http_port must be 1024..65535.' }
     if ($settings.project -notmatch '^[A-Za-z0-9_-]{1,60}$') { throw 'Invalid project alias.' }
     if ($settings.mode -eq 'lab') {
-        if (!$PowerShell7) { $command = Get-Command pwsh.exe -ErrorAction SilentlyContinue; if ($command) { $PowerShell7 = $command.Source } }
-        if (!$PowerShell7 -or !(Test-Path -LiteralPath $PowerShell7 -PathType Leaf)) { throw 'Install PowerShell 7 (winget install Microsoft.PowerShell), or pass -PowerShell7 C:\path\pwsh.exe.' }
         if (!(Get-Service -Name 'MSOLAP$PBIMCPTEST' -ErrorAction SilentlyContinue)) {
             if (!$InstallTestSSAS -or !$AcceptSqlServerLicense) { throw 'Test SSAS is missing. Review Microsoft SQL Server Developer license, then use -Setup -InstallTestSSAS -AcceptSqlServerLicense in elevated PowerShell. Developer is non-production only.' }
             $principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
@@ -81,6 +79,11 @@ try {
         $stack = Get-Content -LiteralPath $PowerBIConfig -Raw | ConvertFrom-Json
         if (($stack | ConvertTo-Json -Depth 20) -match 'report-server.example.com') { throw 'Set the real Report Server portal before -WithPowerBIStack.' }
         if ([int]$settings.http_port -in ([int]$stack.frontend_port..([int]$stack.frontend_port+4))) { throw 'Headless HTTP port overlaps Power BI gateway ports.' }
+    }
+    if ($settings.mode -eq 'lab') {
+        . (Join-Path $root 'scripts\Select-HeadlessPowerShell.ps1')
+        $PowerShell7 = Select-HeadlessPowerShell -Root $root -Requested $PowerShell7 -AllowDownload:$Setup
+        Write-Host "Selected PowerShell: $PowerShell7"
     }
     . (Join-Path $root 'scripts\Select-Python.ps1')
     $selected = Select-PowerBIPython -Requested $Python -ExistingVenv $venv

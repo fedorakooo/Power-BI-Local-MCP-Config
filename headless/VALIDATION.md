@@ -59,3 +59,14 @@ tests passed. Fresh SQL installation through this new wrapper, the combined `-Wi
 path on a new machine, remote access, automatic startup, and Report Server upload/rendering
 were not exercised by this bootstrap verification. The earlier dedicated SQL installer and
 Desktop RS rendering proof are separate evidence, not claims that these paths were tested here.
+
+### Missing PowerShell runtime regression
+
+The bootstrap now searches PATH and the standard PowerShell 7 installation directory,
+and provisions a private PowerShell 7.6.7 x64 during `-Setup` if no suitable runtime exists.
+The archive SHA256 is pinned to the official Microsoft GitHub release; the extracted
+executable must have a valid Microsoft Authenticode signature and pass a runtime probe.
+The real download/extraction/probe completed under Windows PowerShell 5.1. The private
+runtime then passed the SSAS DAX check and HTTP MCP thin-report build. Discovery tests
+also cover rejecting Windows PowerShell 5.1, permitting provisioning only during Setup,
+and refusing to silently substitute an invalid explicit `-PowerShell7` path.
