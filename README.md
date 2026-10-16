@@ -76,8 +76,13 @@ Desktop instances without relaunching the report:
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\PowerBI-MCP\scripts\Test-Desktop.ps1
 ```
 
-The command reports process IDs, session IDs, main-window titles, enrolled paths and
-official Bridge status. Check the unlocked interactive session for first-run dialogs
+The command reports process IDs, session IDs, main-window titles, enrolled paths,
+Desktop version, PBIX hash/ZIP entries, WebView2 registrations, recent application faults
+and official Bridge status. If Desktop has exited, add `-Launch` to open the enrolled
+report once and monitor its initial exit code for up to20seconds. It refuses to launch
+when any Desktop instance is already running. Run it in the intended unlocked Windows
+user session; it does not accept dialogs or terminate the launched application.
+Check the unlocked interactive session for first-run dialogs
 and confirm the enrolled PBIX is actually loaded. `-NoDesktop` checks the four MCP
 services and upstream Report Server independently of the Desktop readiness gate.
 

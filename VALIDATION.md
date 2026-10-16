@@ -61,3 +61,10 @@ against the existing local deployment, returning only a report count. A closed l
 TCP port produced network_status=ConnectFailure with no upstream response body.
 Readiness now preserves a failed list_reports result and stops repeating the upstream
 catalog call once that tool reports failure.
+
+## Desktop exit diagnostics — 2026-10-16
+
+The expanded read-only Desktop diagnostic passed against the original local deployment:
+executable version, PBIX SHA256 and ZIP entries, WebView2 registration lookup, application
+event query and Bridge status. The optional launch probe was not used against existing
+open user reports. The second machine's Desktop exit cause remains to be collected.
