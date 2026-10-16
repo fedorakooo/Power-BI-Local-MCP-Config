@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [switch]$Setup, [switch]$ValidateOnly, [switch]$Status, [switch]$Stop, [switch]$Diagnose,
+    [switch]$Setup, [switch]$ValidateOnly, [switch]$Status, [switch]$Stop, [switch]$Diagnose, [switch]$Restart,
     [switch]$AcceptMicrosoftEula, [switch]$NoDesktop, [switch]$ResetCredential,
     [string]$Python, [string]$CredentialPath,
     [string]$Config
@@ -224,8 +224,13 @@ Set-DeploymentDetail 4 4 'Installation identity and settings verified'
 Start-DeploymentStage 'Start HTTP gateways'
 Set-DeploymentDetail 0 1 'Check the frontend port and start or reuse the scheduled gateway task'
 $task = Get-ScheduledTask -TaskName $taskName -ErrorAction Stop
-if ($task.State -ne 'Running') {
-    if (Get-NetTCPConnection -State Listen -LocalPort ([int]$settings.frontend_port) -ErrorAction SilentlyContinue) { throw 'Frontend port is occupied by another installation. Choose another frontend_port and rerun Setup.' }
+if ($Restart -or $task.State -ne 'Running') {
+    Set-DeploymentDetail 0 3 'Stop the scheduled task and remaining processes from this deployment'
+    Stop-OwnedProcesses
+    Set-DeploymentDetail 1 3 'Stop listener processes on all five configured MCP ports'
+    $requiredPorts = @(0..4 | ForEach-Object { [int]$settings.frontend_port + $_ })
+    & (Join-Path $root 'scripts\Stop-PortListeners.ps1') -Ports $requiredPorts
+    Set-DeploymentDetail 2 3 'Start the scheduled HTTP gateway task'
     Start-ScheduledTask -TaskName $taskName
 }
 Set-DeploymentDetail 1 1 'Gateway start requested; verify service readiness next'

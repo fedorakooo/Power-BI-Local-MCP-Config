@@ -26,6 +26,19 @@ Subsequent start:
 powershell.exe -NoProfile -File C:\PowerBI-MCP\Start-PowerBI.ps1
 ```
 
+To restart gateways and free all five configured ports first:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\PowerBI-MCP\Start-PowerBI.ps1 -Restart
+```
+
+When the scheduled task is stopped, ordinary startup also stops remaining deployment
+processes and frees listeners on frontend_port through frontend_port+4 before starting.
+Cleanup terminates listener processes on these ports, including other applications using
+them, and verifies the ports are free. It refuses protected Windows processes, the calling
+process/ancestors and Power BI Desktop/model processes. Run elevated if the listener owner
+requires it. An already-running gateway task is reused unless -Restart is specified.
+
 Generated client settings: `generated/codex-mcp.toml`.
 
 ## Progress tracking

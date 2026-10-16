@@ -68,3 +68,10 @@ The expanded read-only Desktop diagnostic passed against the original local depl
 executable version, PBIX SHA256 and ZIP entries, WebView2 registration lookup, application
 event query and Bridge status. The optional launch probe was not used against existing
 open user reports. The second machine's Desktop exit cause remains to be collected.
+
+## Required-port cleanup — 2026-10-16
+
+An integration check started two temporary TCP listener processes on OS-selected ports.
+Cleanup terminated the process holding both selected ports and verified they were free.
+The separate listener process and its other ports remained accessible. Test processes
+were cleaned up afterwards. The existing active Power BI deployment was not restarted.
