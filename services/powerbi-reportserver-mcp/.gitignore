@@ -8,4 +8,5 @@ modeling/node_modules/
 mcpServers.local.json
 gateway/node_modules/
 gateway/servers.local.json
+gateway/Caddyfile*
 bridge/node_modules/

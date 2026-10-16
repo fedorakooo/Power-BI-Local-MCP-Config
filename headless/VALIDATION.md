@@ -70,3 +70,13 @@ The real download/extraction/probe completed under Windows PowerShell 5.1. The p
 runtime then passed the SSAS DAX check and HTTP MCP thin-report build. Discovery tests
 also cover rejecting Windows PowerShell 5.1, permitting provisioning only during Setup,
 and refusing to silently substitute an invalid explicit `-PowerShell7` path.
+
+### Headless proxy route
+
+The new managed Caddy route was tested locally with real Caddy and FastMCP processes.
+Initialize, tools/list, inspect and actual thin PBIX compilation passed through
+`/fedaraka-powerbi-headless/mcp`. Reapplying the route produced no configuration change.
+Three regression tests cover IP-handle placement, preserving the existing deny response,
+Host header rewriting, port changes, and rejecting unmanaged/unrestricted templates.
+The target Windows server still needs to pull and apply this version; these local tests
+do not establish reachability from STAIR or Report Server publication/rendering.

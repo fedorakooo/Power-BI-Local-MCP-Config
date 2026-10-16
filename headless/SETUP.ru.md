@@ -90,10 +90,16 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\PowerBI-MCP\Start-Hea
 Report Server, Authoring, Desktop MCP, их Supergateway и Caddy и печатает URL.
 Power BI Desktop автоматически не открывается. GUI-инструментам по-прежнему нужен интерактивный
 сеанс. Headless MCP запускается отдельно, с собственным Streamable HTTP транспортом SDK.
+`-WithPowerBIStack` также добавляет маршрут `/fedaraka-powerbi-headless/mcp` в существующий
+Caddy, внутри действующего списка разрешённых IP. Перед применением конфигурация проверяется
+через `caddy validate`; предыдущая версия сохраняется в `Caddyfile.before-headless`.
 
 ## 5. Результат и подключение
 
-Локальный endpoint по умолчанию: `http://127.0.0.1:8020/mcp`.
+Backend endpoint по умолчанию: `http://127.0.0.1:8020/mcp`.
+При запуске с `-WithPowerBIStack` проверяется MCP через proxy:
+`http://127.0.0.1:8012/fedaraka-powerbi-headless/mcp` (порт берётся из deployment.local.json).
+Скрипт также печатает публичный адрес headless MCP рядом с четырьмя существующими URL.
 
 - `runtime/headless/mcp-client.json` — настройки клиента MCP;
 - `runtime/headless/codex.mcp.toml` — фрагмент для MCP-конфигурации Codex;
@@ -106,8 +112,11 @@ Power BI Desktop автоматически не открывается. GUI-и�
 
 Инструменты: `inspect_headless_report` и `build_headless_report`. Сначала получите `revision`
 через inspect, затем передайте её в `expected_revision` при build.
-Endpoint доступен только с этой машины. Новый MCP **не добавляется автоматически в Caddy или STAIR**;
-для удалённого доступа нужен отдельно проверенный proxy с аутентификацией и сетевыми правилами.
+Backend 8020 доступен только с этой машины. При `-WithPowerBIStack` удалённые клиенты используют
+существующий frontend Caddy и его список разрешённых IP; дополнительные открытые порты не нужны.
+Новый MCP **не регистрируется автоматически в STAIR**. Доступ из кластера, персональная
+аутентификация и разрешения агента проверяются отдельно. Текущий пилотный frontend использует
+сетевой allowlist без отдельного API key; для production требуется согласованная аутентификация.
 Скрипт не создаёт задачу автозапуска headless MCP после входа или перезагрузки.
 
 ## 6. Существующий SSAS заказчика

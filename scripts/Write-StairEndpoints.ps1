@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$Root, [Parameter(Mandatory=$true)][string]$ConfigPath, [string]$PublicHost)
+param([Parameter(Mandatory=$true)][string]$Root, [Parameter(Mandatory=$true)][string]$ConfigPath, [string]$PublicHost, [int]$HeadlessPort = 0)
 $ErrorActionPreference = 'Stop'
 $settings = Get-Content -LiteralPath $ConfigPath -Raw | ConvertFrom-Json
 $generated = Join-Path $Root 'generated'
@@ -20,13 +20,14 @@ $tools = @(
     @{name='Fedaraka Power BI Authoring'; route='authoring'; backend_port=$port+3},
     @{name='Fedaraka Power BI Desktop'; route='desktop'; backend_port=$port+4}
 )
+if ($HeadlessPort) { $tools += @{name='Fedaraka Power BI Headless'; route='headless'; backend_port=$HeadlessPort} }
 $toolsets = @($tools | ForEach-Object {
     [ordered]@{name=$_.name; transport='streamable-http'; url="http://${urlHost}:$port/fedaraka-powerbi-$($_.route)/mcp"; authentication='none'; internal_backend_port=$_.backend_port}
 })
 $payload = [ordered]@{public_host=$PublicHost; proxy_port=$port; allowed_addresses=@($settings.allowed_addresses); access_from_stair='not_verified'; toolsets=$toolsets}
 $payload | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $destination -Encoding UTF8
 Write-Host ''
-Write-Host '=== STAIR MCP URLs: Streamable HTTP through Supergateway + Caddy ===' -ForegroundColor Cyan
+Write-Host '=== STAIR MCP URLs: Streamable HTTP through Caddy ===' -ForegroundColor Cyan
 foreach ($toolset in $toolsets) {
     Write-Host $toolset.name
     Write-Host $toolset.url

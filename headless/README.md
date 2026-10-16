@@ -23,7 +23,9 @@ See [VALIDATION.md](VALIDATION.md) for evidence boundaries and [config.example.j
 
 ## Optional headless MCP
 
-The separate entry point is not enabled by the default gateway or STAIR configuration:
+The standalone entry point below is not automatically registered in STAIR.
+`Start-Headless.ps1 -WithPowerBIStack` configures its HTTP route inside the existing
+IP-restricted Caddy frontend; see [setup instructions](SETUP.ru.md).
 
 ```powershell
 Set-Location C:\PowerBI-MCP\services\powerbi-reportserver-mcp

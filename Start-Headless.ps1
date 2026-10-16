@@ -185,12 +185,13 @@ try {
     Write-Progress -Id 72 -Activity 'Wait for HTTP listener' -Completed
     if (!$ready) { throw 'MCP startup timed out; inspect runtime/headless/stderr.log.' }
     if ($WithPowerBIStack) {
-        $stackArgs = @{Config=$PowerBIConfig;NoDesktop=$true}
+        $stackArgs = @{Config=$PowerBIConfig;NoDesktop=$true;HeadlessPort=$port}
         if ($Setup) { $stackArgs.Setup=$true }
         if ($Restart) { $stackArgs.Restart=$true }
         if ($AcceptMicrosoftEula) { $stackArgs.AcceptMicrosoftEula=$true }
         if ($Python) { $stackArgs.Python=$Python }
         & (Join-Path $root 'Start-PowerBI.ps1') @stackArgs
+        $url = 'http://127.0.0.1:' + [int]$stack.frontend_port + '/fedaraka-powerbi-headless/mcp'
     }
     Step 7 'Verify MCP protocol, tools and optional thin PBIX build'
     $probeArgs = @((Join-Path $root 'scripts\check_headless.py'),'--url',$url,'--project',$settings.project,'--evidence',(Join-Path $runtime 'mcp-evidence.json'))
@@ -201,6 +202,10 @@ try {
     Write-Host "Headless MCP: $url"
     Write-Host "Client settings: $runtime\mcp-client.json"
     Write-Host "Codex TOML fragment: $runtime\codex.mcp.toml"
-    Write-Host 'This endpoint is local only. Report Server publication and remote authentication are separate existing stack operations.'
+    if ($WithPowerBIStack) {
+        Write-Host 'The headless route uses the existing Caddy frontend and its IP allowlist. STAIR connectivity and Report Server publication still require integration checks.'
+    } else {
+        Write-Host 'This endpoint is local only. Use -WithPowerBIStack to configure its route through the existing IP-restricted Caddy frontend.'
+    }
     Write-Host 'SSAS lab uses a dynamic port; rerun this script after SSAS restarts. No automatic Windows reboot or production publication.'
 } finally { Write-Progress -Id 71 -Activity 'Configure and start Power BI headless MCP' -Completed }

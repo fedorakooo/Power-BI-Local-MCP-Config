@@ -4,7 +4,7 @@ param(
     [switch]$AcceptMicrosoftEula, [switch]$NoDesktop, [switch]$ResetCredential,
     [string]$Python, [string]$CredentialPath,
     [string]$PublicHost, [string[]]$StairAddresses,
-    [string]$Config
+    [string]$Config, [int]$HeadlessPort = 0
 )
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
@@ -230,10 +230,18 @@ if ($installation.config -ne $Config) { throw 'Configuration path changed. Rerun
 Set-DeploymentDetail 3 4 'Verify the configuration hash'
 if ($installation.settings_sha256 -ne (Get-FileHash -LiteralPath $Config -Algorithm SHA256).Hash) { throw 'Deployment settings changed. Rerun Setup to regenerate paths, ports and firewall rules.' }
 Set-DeploymentDetail 4 4 'Installation identity and settings verified'
+$headlessChanged = $false
+if ($HeadlessPort) {
+    $proxyOutput = & $venvPython (Join-Path $root 'scripts\configure_headless_proxy.py') --root $root --config $Config --port $HeadlessPort
+    if ($LASTEXITCODE -ne 0) { throw 'Could not configure the headless proxy route.' }
+    $proxyResult = ($proxyOutput -join "`n") | ConvertFrom-Json
+    $headlessChanged = [bool]$proxyResult.changed
+    Write-Host ("Headless proxy configured: " + $proxyResult.url)
+}
 Start-DeploymentStage 'Start HTTP gateways'
 Set-DeploymentDetail 0 1 'Check the frontend port and start or reuse the scheduled gateway task'
 $task = Get-ScheduledTask -TaskName $taskName -ErrorAction Stop
-if ($Restart -or $task.State -ne 'Running') {
+if ($Restart -or $headlessChanged -or $task.State -ne 'Running') {
     Set-DeploymentDetail 0 3 'Stop the scheduled task and remaining processes from this deployment'
     Stop-OwnedProcesses
     Set-DeploymentDetail 1 3 'Stop listener processes on all five configured MCP ports'
@@ -247,7 +255,7 @@ Start-DeploymentStage 'Check MCP services, Report Server and Desktop readiness'
 $arguments = @((Join-Path $root 'scripts\check_runtime.py'),'--root',$root,'--config',$Config,'--progress')
 if ($NoDesktop) { $arguments += '--no-desktop' }
 Invoke-Readiness $venvPython $arguments
-& (Join-Path $root 'scripts\Write-StairEndpoints.ps1') -Root $root -ConfigPath $Config -PublicHost $PublicHost
+& (Join-Path $root 'scripts\Write-StairEndpoints.ps1') -Root $root -ConfigPath $Config -PublicHost $PublicHost -HeadlessPort $HeadlessPort
 Write-Progress -Id 10 -Activity $script:progressActivity -Status 'All stages completed' -PercentComplete 100
 Write-Host "Ready. Task: $taskName. Client configuration: $root\generated\codex-mcp.toml"
 } catch {
