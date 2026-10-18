@@ -10,7 +10,7 @@ from mcp.client.streamable_http import streamablehttp_client
 async def main():
     root = Path(__file__).resolve().parents[1]
     for name in ('modeling', 'reportserver'):
-        url = f'http://127.0.0.1:8012/fedaraka-powerbi-{name}/mcp'
+        url = f'http://127.0.0.1:8012/stair-powerbi-{name}/mcp'
         async with streamablehttp_client(url) as (read, write, _):
             async with ClientSession(read, write) as session:
                 await session.initialize()

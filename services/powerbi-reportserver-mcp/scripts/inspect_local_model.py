@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 async def main():
     evidence = []
-    async with streamablehttp_client('http://127.0.0.1:8012/fedaraka-powerbi-modeling/mcp') as (read, write, _):
+    async with streamablehttp_client('http://127.0.0.1:8012/stair-powerbi-modeling/mcp') as (read, write, _):
         async with ClientSession(read, write) as session:
             await session.initialize()
 
@@ -50,7 +50,7 @@ async def main():
                 'operation': 'Execute', 'connectionName': connection_name, 'query': query,
                 'maxRows': 1, 'timeoutSeconds': 30, 'resultMode': 'Inline'})
             print('DAX_AGGREGATES ' + json.dumps(result))
-    async with streamablehttp_client('http://127.0.0.1:8012/fedaraka-powerbi-reportserver/mcp') as (read, write, _):
+    async with streamablehttp_client('http://127.0.0.1:8012/stair-powerbi-reportserver/mcp') as (read, write, _):
         async with ClientSession(read, write) as session:
             await session.initialize()
             for tool, args in [('list_reports', {}), ('get_report_link', {'report': 'sales'}),

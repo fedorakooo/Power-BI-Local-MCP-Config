@@ -21,7 +21,7 @@ $runtime = Join-Path $root 'runtime'
 $digest = [Security.Cryptography.SHA256]::Create()
 try { $suffix = ([BitConverter]::ToString($digest.ComputeHash([Text.Encoding]::UTF8.GetBytes($root.ToLowerInvariant())))).Replace('-','').Substring(0,8) }
 finally { $digest.Dispose() }
-$taskName = 'Fedaraka-PowerBI-MCP-' + $suffix
+$taskName = 'STAIR-PowerBI-MCP-' + $suffix
 if ($Diagnose) {
     & (Join-Path $root 'scripts\Diagnose-Startup.ps1') -Root $root -TaskName $taskName
     return

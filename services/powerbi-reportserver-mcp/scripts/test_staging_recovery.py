@@ -33,14 +33,14 @@ async def main():
 
     async def approval(action, source, expected):
         process=await asyncio.create_subprocess_exec(sys.executable,'-m','pbirs_mcp.admin',
-            'approve','--actor','fedaraka','--report','staging','--action',action,
+            'approve','--actor','stair','--report','staging','--action',action,
             '--file',str(source),'--expected-current-sha256',expected,cwd=ROOT,
             stdout=asyncio.subprocess.PIPE,stderr=asyncio.subprocess.PIPE)
         stdout,stderr=await process.communicate()
         if process.returncode: raise RuntimeError('Operator approval failed')
         return re.search(r'([0-9a-f]{32})\s*$',stdout.decode())[1]
 
-    async with streamablehttp_client('http://127.0.0.1:8012/fedaraka-powerbi-reportserver/mcp') as (read,write,_):
+    async with streamablehttp_client('http://127.0.0.1:8012/stair-powerbi-reportserver/mcp') as (read,write,_):
         async with ClientSession(read,write) as session:
             await session.initialize()
             async def call(tool,args):
@@ -55,7 +55,7 @@ async def main():
                 return [json.loads(x) for x in values]
             reports=await call('list_reports',{})
             stage=next(x for x in reports if x['alias']=='staging')
-            if stage['path']!='/Fedaraka MCP Validation/Sales Teams Quarterly Performance':
+            if stage['path']!='/STAIR MCP Validation/Sales Teams Quarterly Performance':
                 raise RuntimeError('Staging path mismatch')
             current=(await call('download_report_backup',{'report':'staging'}))[0]
             if current['sha256']!=published['sha256']: raise RuntimeError('Server changed since review')

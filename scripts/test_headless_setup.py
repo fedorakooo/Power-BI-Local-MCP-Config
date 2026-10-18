@@ -19,8 +19,8 @@ class HeadlessSetupTests(unittest.TestCase):
         compiler = self.root / 'tools/headless/compiler'
         compiler.mkdir(parents=True)
         (compiler / 'pbi-tools.core.exe').write_bytes(b'fixture-not-executable')
-        shutil.copyfile(REPO / 'reports/Fedaraka Server Automated.pbix',
-                        self.root / 'reports/Fedaraka Server Automated.pbix')
+        shutil.copyfile(REPO / 'reports/STAIR Server Automated.pbix',
+                        self.root / 'reports/STAIR Server Automated.pbix')
         self.settings = dict(mode='lab', project='headless-lab', report_version='1.28')
 
     def test_rerun_preserves_visual_edits_and_updates_lab_connection(self):

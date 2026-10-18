@@ -58,7 +58,7 @@ try {
             $path = $request.folder.TrimEnd('/') + '/' + $request.name
             if ($request.name -match '[\\/:?*<>"\r\n]' -or !$request.folder.StartsWith('/')) { throw 'Unsafe destination' }
             $payload = @{'@odata.type'='#Model.PowerBIReport';Name=$request.name;Path=$path;
-                Content=[Convert]::ToBase64String([IO.File]::ReadAllBytes($request.source));ContentType='';Description='Created by Fedaraka Power BI MCP'}
+                Content=[Convert]::ToBase64String([IO.File]::ReadAllBytes($request.source));ContentType='';Description='Created by STAIR Power BI MCP'}
             $body = [Text.Encoding]::UTF8.GetBytes(($payload | ConvertTo-Json -Compress))
             $data = Invoke-RestMethod -Uri ($base + 'PowerBIReports') -Method Post -Body $body -ContentType 'application/json' @common
             $result = @{report=($data | Select-Object Id,Name,Path,ModifiedDate)}

@@ -15,7 +15,7 @@ async def main():
     async with stdio_client(params) as (read, write):
         async with ClientSession(read, write) as session:
             await session.initialize()
-            result = await session.call_tool('verify_saved_report', {'file_name': 'Fedaraka Automated.pbix'})
+            result = await session.call_tool('verify_saved_report', {'file_name': 'STAIR Automated.pbix'})
             (ROOT / 'runtime/saved-release-verification.json').write_text(result.model_dump_json(indent=2))
             for item in result.content:
                 if item.type == 'text':

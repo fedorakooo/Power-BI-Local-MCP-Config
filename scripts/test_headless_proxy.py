@@ -7,7 +7,7 @@ CONFIG = '''{
 :8012 {
     @allowed remote_ip 127.0.0.1 10.26.10.14
     handle @allowed {
-        handle_path /fedaraka-powerbi-modeling/* {
+        handle_path /stair-powerbi-modeling/* {
             reverse_proxy 127.0.0.1:8013
         }
     }
@@ -19,7 +19,7 @@ CONFIG = '''{
 class ProxyTests(unittest.TestCase):
     def test_route_stays_inside_existing_allowlist(self):
         value = with_route(CONFIG, 8020)
-        self.assertLess(value.index('handle @allowed'), value.index('/fedaraka-powerbi-headless/'))
+        self.assertLess(value.index('handle @allowed'), value.index('/stair-powerbi-headless/'))
         self.assertIn('header_up Host 127.0.0.1:8020', value)
         self.assertIn('@allowed remote_ip 127.0.0.1 10.26.10.14', value)
         self.assertIn('respond "Forbidden" 403', value)
@@ -28,15 +28,15 @@ class ProxyTests(unittest.TestCase):
         value = with_route(CONFIG, 8020)
         self.assertEqual(value, with_route(value, 8020))
         changed = with_route(value, 8021)
-        self.assertEqual(changed.count('handle_path /fedaraka-powerbi-headless/'), 1)
+        self.assertEqual(changed.count('handle_path /stair-powerbi-headless/'), 1)
         self.assertNotIn(':8020', changed)
 
     def test_unrestricted_or_unmanaged_configuration_is_refused(self):
         with self.assertRaisesRegex(ValueError, 'IP-restricted'):
             with_route(':8012 { reverse_proxy 127.0.0.1:8020 }', 8020)
         with self.assertRaisesRegex(ValueError, 'Unmanaged'):
-            with_route(CONFIG.replace('handle_path /fedaraka-powerbi-modeling/',
-                                     'handle_path /fedaraka-powerbi-headless/'), 8020)
+            with_route(CONFIG.replace('handle_path /stair-powerbi-modeling/',
+                                     'handle_path /stair-powerbi-headless/'), 8020)
 
 
 if __name__ == '__main__':

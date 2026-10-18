@@ -5,7 +5,7 @@ $root = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $identity = [Security.Principal.WindowsIdentity]::GetCurrent().Name
 $node = (Get-Command node -ErrorAction Stop).Source
 @{ node = $node } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $root 'runtime\gateway-paths.json') -Encoding UTF8
-$name = 'STAIR-Fedaraka-PowerBI-Supergateway'
+$name = 'STAIR-PowerBI-Supergateway'
 if (Get-ScheduledTask -TaskName $name -ErrorAction SilentlyContinue) { Stop-ScheduledTask -TaskName $name }
 $processes = @(Get-CimInstance Win32_Process | Where-Object {
     $_.CommandLine -and ($_.CommandLine.IndexOf((Join-Path $root 'scripts\run_supergateway.py'),[StringComparison]::OrdinalIgnoreCase) -ge 0 -or
@@ -21,12 +21,12 @@ $trigger = New-ScheduledTaskTrigger -AtLogOn -User $identity
 $principal = New-ScheduledTaskPrincipal -UserId $identity -LogonType Interactive -RunLevel Limited
 $settings = New-ScheduledTaskSettingsSet -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1) -ExecutionTimeLimit ([TimeSpan]::Zero) -MultipleInstances IgnoreNew
 Register-ScheduledTask -TaskName $name -Action $action -Trigger $trigger -Principal $principal -Settings $settings `
-    -Description "Fedaraka's IP-restricted Power BI Modeling and Report Server Supergateway HTTP endpoints; no API-key auth for pilot." -Force | Out-Null
-$firewallName = 'STAIR-Fedaraka-PowerBI-Supergateway'
+    -Description "STAIR IP-restricted Power BI Modeling and Report Server Supergateway HTTP endpoints; no API-key auth for pilot." -Force | Out-Null
+$firewallName = 'STAIR-PowerBI-Supergateway'
 if (Get-NetFirewallRule -Name $firewallName -ErrorAction SilentlyContinue) { Remove-NetFirewallRule -Name $firewallName }
-New-NetFirewallRule -Name $firewallName -DisplayName "Fedaraka Power BI MCP - STAIR dev gateway only" `
+New-NetFirewallRule -Name $firewallName -DisplayName "STAIR Power BI MCP - STAIR dev gateway only" `
     -Direction Inbound -Action Allow -Protocol TCP -LocalPort 8012 -RemoteAddress $AllowedAddresses -Profile Any | Out-Null
-$backendRule = 'STAIR-Fedaraka-PowerBI-Backend-Block'
+$backendRule = 'STAIR-PowerBI-Backend-Block'
 if (Get-NetFirewallRule -Name $backendRule -ErrorAction SilentlyContinue) { Remove-NetFirewallRule -Name $backendRule }
 New-NetFirewallRule -Name $backendRule -DisplayName 'Block external access to internal Supergateway backends' `
     -Direction Inbound -Action Block -Protocol TCP -LocalPort 8013,8014,8015,8016 -RemoteAddress Any -Profile Any | Out-Null

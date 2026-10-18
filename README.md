@@ -1,6 +1,6 @@
 # Power-BI-Local-MCP-Config
 
-By **Aliaksandr Fedaraka**. Windows deployment and configuration for Power BI MCP automation.
+**STAIR**. Windows deployment and configuration for Power BI MCP automation.
 
 Includes custom Desktop and Report Server MCP services, pinned Microsoft Modeling MCP and
 Desktop Bridge dependencies, and Supergateway HTTP transport behind an IP-restricted Caddy proxy.
@@ -18,7 +18,7 @@ See the [step-by-step Russian instructions](README.ru.md).
 
 1. Copy this repository to `C:\PowerBI-MCP`.
 2. Install stable Windows CPython x64 (3.10 or newer) and Node.js LTS.
-3. Use the included `reports/Fedaraka Server Automated.pbix`, or supply another compatible PBIX.
+3. Use the included `reports/STAIR Server Automated.pbix`, or supply another compatible PBIX.
 4. Copy `deployment.example.json` to `deployment.local.json`; replace the example portal,
    report GUID and report file with your values.
 5. Run elevated under the Windows user who will operate Desktop, after accepting Microsoft licenses:
@@ -218,3 +218,20 @@ Source creation alone does not publish a report.
 
 For stable SSAS ports, boot startup independent of login, and bounded health recovery,
 see [reliable background startup](RELIABILITY.md). Desktop UI operations remain interactive.
+
+## STAIR naming migration
+
+Existing deployments can migrate component names, routes, Windows tasks, managed
+project names, report files and the enrolled test catalog folder to STAIR:
+
+```powershell
+$credential = Get-Credential
+& C:\PowerBI-MCP\scripts\Rename-STAIRDeployment.ps1 -Root C:\PowerBI-MCP -Credential $credential
+```
+
+Use the original installation owner's full Windows identity. Save and close Power BI
+Desktop first. The migration preserves report GUIDs and PBIX bytes, exports task/config
+backups, and temporarily retains the former HTTP routes while STAIR toolsets are
+updated to `/stair-powerbi-<service>/mcp`. Historical audit records and original model
+field bindings keep their provenance. Remove the transitional routes after client
+verification. The new agent name is `stair-powerbi-onpremises`.

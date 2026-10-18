@@ -1,5 +1,5 @@
 {
-  "name": "fedaraka-powerbi-http-gateway",
+  "name": "stair-powerbi-http-gateway",
   "private": true,
   "version": "0.1.0",
   "dependencies": { "supergateway": "4.1.0" }

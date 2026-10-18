@@ -55,15 +55,15 @@ class DeploymentTests(unittest.TestCase):
         path=self.service/'config.local.json'
         config=json.loads(path.read_text())
         config['new_report_destinations']={'new-sales':{'folder':'/Test','name':'New Sales'}}
-        config['clients']['fedaraka']['create_reports']=['new-sales']
-        config['clients']['fedaraka']['automatic_publication']={'reports':['new-sales','staging'],'actions':['publish','create']}
+        config['clients']['stair']['create_reports']=['new-sales']
+        config['clients']['stair']['automatic_publication']={'reports':['new-sales','staging'],'actions':['publish','create']}
         path.write_text(json.dumps(config))
         configure(self.root,self.path,str(self.node))
         config=json.loads(path.read_text())
         self.assertEqual(config['new_report_destinations']['new-sales']['name'],'New Sales')
-        self.assertIn('create',config['clients']['fedaraka']['scopes'])
-        self.assertIn('new-sales',config['clients']['fedaraka']['reports'])
-        self.assertEqual(config['clients']['fedaraka']['automatic_publication']['reports'],['new-sales','staging'])
+        self.assertIn('create',config['clients']['stair']['scopes'])
+        self.assertIn('new-sales',config['clients']['stair']['reports'])
+        self.assertEqual(config['clients']['stair']['automatic_publication']['reports'],['new-sales','staging'])
 
 
 if __name__=='__main__':unittest.main()

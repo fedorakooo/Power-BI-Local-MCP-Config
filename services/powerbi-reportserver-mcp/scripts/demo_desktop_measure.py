@@ -11,7 +11,7 @@ from mcp import ClientSession
 from mcp.client.streamable_http import streamablehttp_client
 
 ROOT = Path(__file__).resolve().parents[1]
-NAME = 'Fedaraka MCP Win Rate %'
+NAME = 'STAIR MCP Win Rate %'
 TABLE = '#Measures'
 
 
@@ -19,7 +19,7 @@ async def main():
     evidence = []
     verify_only = '--verify-only' in sys.argv
     destination = ROOT / ('runtime/desktop-measure-verification.json' if verify_only else 'runtime/desktop-measure-update.json')
-    async with streamablehttp_client('http://127.0.0.1:8012/fedaraka-powerbi-modeling/mcp') as (read, write, _):
+    async with streamablehttp_client('http://127.0.0.1:8012/stair-powerbi-modeling/mcp') as (read, write, _):
         async with ClientSession(read, write) as session:
             await session.initialize()
 
@@ -50,7 +50,7 @@ async def main():
                 raise RuntimeError('Required existing measures are missing')
             definition = {'tableName': TABLE, 'name': NAME,
                 'expression': 'DIVIDE([Opportunities Won], [Opportunities], 0)',
-                'formatString': '0.00%', 'displayFolder': 'Fedaraka MCP',
+                'formatString': '0.00%', 'displayFolder': 'STAIR MCP',
                 'description': 'Demo KPI created through local MCP by Codex. Won opportunities / all opportunities; responds to report filter context.'}
             if not verify_only:
                 created = await call('measure_operations', {'operation': 'Create', 'connectionName': connection,
@@ -59,11 +59,11 @@ async def main():
             verified = await call('measure_operations', {'operation': 'Get', 'connectionName': connection,
                 'references': [{'tableName': TABLE, 'name': NAME}]})
             print('GET ' + json.dumps(verified), flush=True)
-            query = 'EVALUATE ROW("Fedaraka Win Rate", [Fedaraka MCP Win Rate %], "Existing Conversion Rate", [Conversion Rate %])'
+            query = 'EVALUATE ROW("STAIR Win Rate", [STAIR MCP Win Rate %], "Existing Conversion Rate", [Conversion Rate %])'
             values = await call('dax_query_operations', {'operation': 'Execute', 'connectionName': connection,
                 'query': query, 'maxRows': 1, 'resultMode': 'Inline', 'timeoutSeconds': 30})
             rows = values.get('data', {}).get('rows', [])
-            if len(rows) != 1 or abs(rows[0]['[Fedaraka Win Rate]'] - rows[0]['[Existing Conversion Rate]']) > 1e-10:
+            if len(rows) != 1 or abs(rows[0]['[STAIR Win Rate]'] - rows[0]['[Existing Conversion Rate]']) > 1e-10:
                 raise RuntimeError('Verification failed; inspect the evidence, do not retry the write')
             print('DAX_VERIFIED ' + json.dumps(values), flush=True)
             print('Created and verified ' + TABLE + '[' + NAME + ']. Desktop PBIX has not been saved.', flush=True)

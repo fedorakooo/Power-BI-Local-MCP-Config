@@ -31,15 +31,15 @@ async def main():
             if '--dashboard-only' not in sys.argv:
                 result = await call('add_project_ratio_measure', {'project': 'sales-demo',
                     'expected_revision': state['revision'], 'table': '#Measures',
-                    'measure_name': 'Fedaraka MCP Win Rate %', 'numerator_measure': 'Opportunities Won',
+                    'measure_name': 'STAIR MCP Win Rate %', 'numerator_measure': 'Opportunities Won',
                     'denominator_measure': 'Opportunities'})
                 print(json.dumps(result), flush=True)
                 state = await call('inspect_report_project', {'project': 'sales-demo'})
             result = await call('add_kpi_dashboard', {'project': 'sales-demo', 'expected_revision': state['revision'],
-                'title': 'Fedaraka MCP', 'cards': [
+                'title': 'STAIR MCP', 'cards': [
                     {'table': '#Measures', 'measure': 'Sales Won', 'title': 'Sales won'},
                     {'table': '#Measures', 'measure': 'Opportunities', 'title': 'Opportunities'},
-                    {'table': '#Measures', 'measure': 'Fedaraka MCP Win Rate %', 'title': 'Fedaraka win rate'}],
+                    {'table': '#Measures', 'measure': 'STAIR MCP Win Rate %', 'title': 'STAIR win rate'}],
                 'slicer_table': 'dim_SaleTeams', 'slicer_column': 'manager'})
             print(json.dumps(result), flush=True)
 

@@ -1,6 +1,6 @@
 # Единый запуск headless-решения
 
-Автор: Aliaksandr Fedaraka. Статус: экспериментальная локальная реализация.
+Проект: STAIR. Статус: экспериментальная локальная реализация.
 
 ## Что делает скрипт
 
@@ -96,7 +96,7 @@ PID, временем создания и командной строкой. SSA
 При `-WithPowerBIStack` Headless MCP запускает существующая задача планировщика
 вместе с четырьмя другими MCP и Caddy. Это позволяет завершить SSH-команду без
 завершения Headless-процесса. `-Status` показывает режим gateway-supervised и
-наличие слушателя; лог — `services/powerbi-reportserver-mcp/runtime/fedaraka-powerbi-headless.log`.
+наличие слушателя; лог — `services/powerbi-reportserver-mcp/runtime/stair-powerbi-headless.log`.
 `-Stop -WithPowerBIStack` останавливает весь стек. Задача по-прежнему зависит от
 интерактивного входа владельца установки; независимость от выхода пользователя
 не заявляется. Отдельный режим без `-WithPowerBIStack` использует detached-процесс
@@ -121,7 +121,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\PowerBI-MCP\Start-Hea
 Report Server, Authoring, Desktop MCP, их Supergateway и Caddy и печатает URL.
 Power BI Desktop автоматически не открывается. GUI-инструментам по-прежнему нужен интерактивный
 сеанс. Headless MCP запускается отдельно, с собственным Streamable HTTP транспортом SDK.
-`-WithPowerBIStack` также добавляет маршрут `/fedaraka-powerbi-headless/mcp` в существующий
+`-WithPowerBIStack` также добавляет маршрут `/stair-powerbi-headless/mcp` в существующий
 Caddy, внутри действующего списка разрешённых IP. Перед применением конфигурация проверяется
 через `caddy validate`; предыдущая версия сохраняется в `Caddyfile.before-headless`.
 
@@ -129,7 +129,7 @@ Caddy, внутри действующего списка разрешённых
 
 Backend endpoint по умолчанию: `http://127.0.0.1:8020/mcp`.
 При запуске с `-WithPowerBIStack` проверяется MCP через proxy:
-`http://127.0.0.1:8012/fedaraka-powerbi-headless/mcp` (порт берётся из deployment.local.json).
+`http://127.0.0.1:8012/stair-powerbi-headless/mcp` (порт берётся из deployment.local.json).
 Скрипт также печатает публичный адрес headless MCP рядом с четырьмя существующими URL.
 
 - `runtime/headless/mcp-client.json` — настройки клиента MCP;

@@ -1,4 +1,4 @@
-# Fedaraka: переносимая установка Power BI MCP
+# STAIR: переносимая установка Power BI MCP
 
 Самостоятельный пакет: Microsoft Modeling MCP, наши Report Server MCP, Desktop MCP,
 Authoring MCP, Supergateway и Caddy. Главный запуск — `Start-PowerBI.ps1` в корне.
@@ -25,12 +25,12 @@ C:\PowerBI-MCP\Start-PowerBI.ps1
 C:\PowerBI-MCP\deployment.example.json
 C:\PowerBI-MCP\scripts\
 C:\PowerBI-MCP\services\powerbi-reportserver-mcp\
-C:\PowerBI-MCP\reports\Fedaraka Server Automated.pbix
+C:\PowerBI-MCP\reports\STAIR Server Automated.pbix
 ```
 
 Не переносите `.venv`, `node_modules`, `runtime`, `generated`, локальные конфиги
 и XML с учётными данными: они создаются заново. По запросу владельца в публичный репозиторий
-включён проверенный `reports/Fedaraka Server Automated.pbix` вместе с данными отчёта.
+включён проверенный `reports/STAIR Server Automated.pbix` вместе с данными отчёта.
 Для переноса более свежих изменений сначала сохраните и проверьте рабочий PBIX,
 затем поместите его в `reports`: пакет не экспортирует открытый Desktop автоматически.
 
@@ -98,7 +98,7 @@ powershell.exe -NoProfile -File C:\PowerBI-MCP\Start-PowerBI.ps1
 ```
 
 Команда запускает шлюзы, проверяет четыре MCP и открывает PBIX через MCP.
-Отчёт не публикуется при запуске. Задача `Fedaraka-PowerBI-MCP-<идентификатор папки>`
+Отчёт не публикуется при запуске. Задача `STAIR-PowerBI-MCP-<идентификатор папки>`
 также запускает шлюзы при входе пользователя.
 
 Дополнительные параметры той же команды:
@@ -139,10 +139,10 @@ MCP-конфигурацию клиента, заменяя одноимённы
 
 | Сервер | Streamable HTTP URL |
 |---|---|
-| Modeling | `http://127.0.0.1:8012/fedaraka-powerbi-modeling/mcp` |
-| Report Server | `http://127.0.0.1:8012/fedaraka-powerbi-reportserver/mcp` |
-| Authoring | `http://127.0.0.1:8012/fedaraka-powerbi-authoring/mcp` |
-| Desktop | `http://127.0.0.1:8012/fedaraka-powerbi-desktop/mcp` |
+| Modeling | `http://127.0.0.1:8012/stair-powerbi-modeling/mcp` |
+| Report Server | `http://127.0.0.1:8012/stair-powerbi-reportserver/mcp` |
+| Authoring | `http://127.0.0.1:8012/stair-powerbi-authoring/mcp` |
+| Desktop | `http://127.0.0.1:8012/stair-powerbi-desktop/mcp` |
 
 Для удалённого клиента замените `127.0.0.1` на DNS/IP Windows-машины.
 Добавьте фактические исходящие IP клиента/STAIR в `allowed_addresses` и повторите Setup.

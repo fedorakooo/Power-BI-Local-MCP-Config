@@ -1,6 +1,6 @@
 # Validation report
 
-The owner authorized publication of `Fedaraka Server Automated.pbix`, including report data.
+The owner authorized publication of `STAIR Server Automated.pbix`, including report data.
 This is the validated Report Server compatible seed used by deployment.example.json.
 SHA256: `ba44a423162888f742a956f76410c13b344aa95aa984ba8838aebcd13edc623e`.
 

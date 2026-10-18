@@ -146,7 +146,7 @@ class ThinReportBuilder:
 def build_mcp(config, **settings):
     service = ThinReportBuilder(config)
     creator = DynamicReports(config)
-    mcp = FastMCP('Power BI Headless Thin Report Build (experimental)', **settings)
+    mcp = FastMCP('STAIR Power BI Headless Thin Report Build (experimental)', **settings)
 
     @mcp.tool(annotations={'readOnlyHint': True})
     def list_report_workspace() -> dict:

@@ -9,7 +9,7 @@
 
 ```powershell
 Set-Location C:\PowerBI-MCP\services\powerbi-reportserver-mcp
-.\.venv\Scripts\python.exe -m pbirs_mcp.admin --config config.local.json publication-policy --actor fedaraka --mode automatic --report staging --report sales-new --action publish --action create
+.\.venv\Scripts\python.exe -m pbirs_mcp.admin --config config.local.json publication-policy --actor stair --mode automatic --report staging --report sales-new --action publish --action create
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\PowerBI-MCP\Start-Headless.ps1 -Restart -WithPowerBIStack
 ```
 
@@ -26,7 +26,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\PowerBI-MCP\Start-Hea
 блокировку. Восстановление из backup сохраняет прежний approval-порядок.
 Политика переживает повторный Setup для того же Report Server.
 
-Вернуть ручной режим можно CLI `publication-policy --actor fedaraka --mode approval
+Вернуть ручной режим можно CLI `publication-policy --actor stair --mode approval
 --report staging --report sales-new`, затем перезапустить MCP.
 
 Headless MCP умеет создавать новый thin-report на зарегистрированной модели SSAS,
@@ -76,13 +76,13 @@ Report Server MCP дополнен `publish_new_reviewed_pbix`. Инструме
 
 ```powershell
 Set-Location C:\PowerBI-MCP\services\powerbi-reportserver-mcp
-.\.venv\Scripts\python.exe -m pbirs_mcp.admin --config config.local.json enroll-new --actor fedaraka --alias sales-new --folder '/Fedaraka MCP Validation' --name 'Fedaraka Dynamic Sales'
+.\.venv\Scripts\python.exe -m pbirs_mcp.admin --config config.local.json enroll-new --actor stair --alias sales-new --folder '/STAIR MCP Validation' --name 'STAIR Dynamic Sales'
 ```
 
 Перезапустите MCP. После проверки конкретного build оператор выдаёт разрешение:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pbirs_mcp.admin --config config.local.json approve-create --actor fedaraka --report sales-new --file 'C:\PowerBI-MCP\services\powerbi-reportserver-mcp\runtime\release\REVIEWED-BUILD.pbix'
+.\.venv\Scripts\python.exe -m pbirs_mcp.admin --config config.local.json approve-create --actor stair --report sales-new --file 'C:\PowerBI-MCP\services\powerbi-reportserver-mcp\runtime\release\REVIEWED-BUILD.pbix'
 ```
 
 Для одной команды из любого каталога используйте `scripts/Approve-NewReport.ps1`

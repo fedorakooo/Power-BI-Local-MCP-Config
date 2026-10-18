@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 async def main():
     params = StdioServerParameters(command=sys.executable, args=['-m', 'pbirs_mcp.windows_worker',
         '--config', str(ROOT / 'config.local.json')], cwd=str(ROOT), env=dict(os.environ))
-    transport = streamablehttp_client('http://127.0.0.1:8012/fedaraka-powerbi-desktop/mcp') if '--http' in sys.argv else stdio_client(params)
+    transport = streamablehttp_client('http://127.0.0.1:8012/stair-powerbi-desktop/mcp') if '--http' in sys.argv else stdio_client(params)
     async with transport as streams:
         read, write = streams[:2]
         async with ClientSession(read, write) as session:

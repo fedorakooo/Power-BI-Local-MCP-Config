@@ -7,9 +7,9 @@ STAIR is not required for these tests.
 
 ```text
 Use powerbi_modeling_local, powerbi_desktop_local and powerbi_reportserver_local directly, without STAIR.
-Target only the open report “Fedaraka Server Automated - Power BI Desktop (September 2026)”.
+Target only the open report “STAIR Server Automated - Power BI Desktop (September 2026)”.
 Discover the exact instance and use its returned connectionName for all model calls.
-Read #Measures[Fedaraka MCP Win Rate %] and run one DAX ROW query for its unfiltered
+Read #Measures[STAIR MCP Win Rate %] and run one DAX ROW query for its unfiltered
 value and CALCULATE of that measure with dim_SaleTeams[manager] = "Cara Losch".
 Expect approximately 48.16% and 49.79%.
 Call get_dashboard_preview(project="rs-automation", page_name="Page 1") and show its image.
@@ -43,14 +43,14 @@ server hash; old or consumed approvals cannot be reused.
 The operator first downloads a current staging backup and issues a one-use approval:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pbirs_mcp.admin approve --actor fedaraka --report staging --action publish --file "<absolute release PBIX path>" --expected-current-sha256 "<current server SHA256>"
+.\.venv\Scripts\python.exe -m pbirs_mcp.admin approve --actor stair --report staging --action publish --file "<absolute release PBIX path>" --expected-current-sha256 "<current server SHA256>"
 ```
 
 Then provide the returned approval ID with this prompt:
 
 ```text
 Use powerbi_reportserver_local. Publish only the reviewed release file
-Fedaraka Server Automated.pbix to alias staging with approval_id=<OPERATOR_APPROVAL_ID>.
+STAIR Server Automated.pbix to alias staging with approval_id=<OPERATOR_APPROVAL_ID>.
 Call publish_reviewed_pbix once, then download_report_backup and verify the server
 SHA256 matches the reviewed local file. Return the report and embed links.
 On any uncertain response, inspect the server content and stop; do not retry the write.

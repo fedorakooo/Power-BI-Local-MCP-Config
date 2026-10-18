@@ -6,8 +6,8 @@ import re
 import subprocess
 from pathlib import Path
 
-BEGIN = '        # BEGIN FEDARAKA HEADLESS MCP\n'
-END = '        # END FEDARAKA HEADLESS MCP\n'
+BEGIN = '        # BEGIN STAIR HEADLESS MCP\n'
+END = '        # END STAIR HEADLESS MCP\n'
 
 
 def with_route(text, port):
@@ -18,10 +18,10 @@ def with_route(text, port):
     if (BEGIN in text) != (END in text) or text.count(BEGIN) > 1 or text.count(END) > 1:
         raise ValueError('Invalid managed headless route markers')
     text = re.sub(re.escape(BEGIN) + r'.*?' + re.escape(END), '', text, flags=re.S)
-    if '/fedaraka-powerbi-headless/' in text:
+    if '/stair-powerbi-headless/' in text:
         raise ValueError('Unmanaged headless route exists; review it before changing configuration')
     block = BEGIN + (
-        f'        handle_path /fedaraka-powerbi-headless/* {{\n'
+        f'        handle_path /stair-powerbi-headless/* {{\n'
         f'            reverse_proxy 127.0.0.1:{port} {{\n'
         f'                header_up Host 127.0.0.1:{port}\n'
         f'                flush_interval -1\n'
@@ -56,9 +56,9 @@ def configure(root, config, port):
             pending.unlink(missing_ok=True)
     generated = root / 'generated'
     generated.mkdir(exist_ok=True)
-    url = f'http://127.0.0.1:{settings["frontend_port"]}/fedaraka-powerbi-headless/mcp'
+    url = f'http://127.0.0.1:{settings["frontend_port"]}/stair-powerbi-headless/mcp'
     (generated / 'headless-proxy-mcp.toml').write_text(
-        '[mcp_servers.fedaraka-powerbi-headless]\nurl = ' + json.dumps(url) + '\n', encoding='utf-8')
+        '[mcp_servers.stair-powerbi-headless]\nurl = ' + json.dumps(url) + '\n', encoding='utf-8')
     return {'status': 'headless_proxy_configured', 'changed': changed, 'url': url, 'backend_port': port}
 
 

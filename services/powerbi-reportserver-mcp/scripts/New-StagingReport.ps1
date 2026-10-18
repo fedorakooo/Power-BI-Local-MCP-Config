@@ -6,11 +6,11 @@ $configuration = Get-Content -LiteralPath $Config -Raw | ConvertFrom-Json
 $credential = Import-Clixml -LiteralPath $configuration.credential_path
 $portal = $configuration.portal.TrimEnd('/')
 $common = @{ Credential=$credential; TimeoutSec=60; MaximumRedirection=0 }
-$folder = '/Fedaraka MCP Validation'
+$folder = '/STAIR MCP Validation'
 Import-Module ReportingServicesTools -RequiredVersion 0.0.9.3
 $folders = Invoke-RestMethod -Uri ($portal + '/api/v2.0/Folders') @common
 if (!@($folders.value | Where-Object Path -eq $folder).Count) {
-    New-RsRestFolder -ReportPortalUri $portal -RsFolder '/' -FolderName 'Fedaraka MCP Validation' -Credential $credential | Out-Null
+    New-RsRestFolder -ReportPortalUri $portal -RsFolder '/' -FolderName 'STAIR MCP Validation' -Credential $credential | Out-Null
 }
 $reports = Invoke-RestMethod -Uri ($portal + '/api/v2.0/PowerBIReports') @common
 $target = $folder + '/Sales Teams Quarterly Performance'

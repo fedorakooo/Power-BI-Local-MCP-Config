@@ -26,7 +26,7 @@ async def main(args):
     inventory = []
     for name in ('modeling', 'reportserver', 'authoring', 'desktop'):
         progress(args, len(inventory), f'Connecting to {name}')
-        url = f"http://127.0.0.1:{settings['frontend_port']}/fedaraka-powerbi-{name}/mcp"
+        url = f"http://127.0.0.1:{settings['frontend_port']}/stair-powerbi-{name}/mcp"
         deadline = time.monotonic()+60
         last_notice = time.monotonic()
         upstream_failure = None

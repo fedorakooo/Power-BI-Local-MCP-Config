@@ -60,7 +60,7 @@ def build_mcp(service):
         finally:
             shutdown_tracing()
 
-    mcp = FastMCP('Power BI Report Server', stateless_http=True, json_response=True,
+    mcp = FastMCP('STAIR Power BI Report Server', stateless_http=True, json_response=True,
                  lifespan=lifespan,
                  transport_security=TransportSecuritySettings(
                      enable_dns_rebinding_protection=True,

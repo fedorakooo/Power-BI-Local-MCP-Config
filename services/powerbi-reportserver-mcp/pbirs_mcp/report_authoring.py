@@ -226,7 +226,7 @@ class Authoring:
                     archive.write(file, file.relative_to(pbip.parent))
             expression = 'DIVIDE([' + numerator.replace(']', ']]') + '], [' + denominator.replace(']', ']]') + '], 0)'
             definition = ("\n\tmeasure '" + name.replace("'", "''") + "' = " + expression +
-                          '\n\t\tformatString: 0.00%\n\t\tdisplayFolder: Fedaraka MCP\n\t\tlineageTag: ' + str(uuid.uuid4()) + '\n')
+                          '\n\t\tformatString: 0.00%\n\t\tdisplayFolder: STAIR MCP\n\t\tlineageTag: ' + str(uuid.uuid4()) + '\n')
             temporary = path.with_suffix('.tmp-' + backup_id)
             temporary.write_text(path.read_text(encoding='utf-8-sig').rstrip() + '\n' + definition, encoding='utf-8')
             os.replace(temporary, path)
@@ -239,7 +239,7 @@ class Authoring:
 
 def build(config):
     service = Authoring(config)
-    mcp = FastMCP('Power BI Report Authoring')
+    mcp = FastMCP('STAIR Power BI Report Authoring')
 
     @mcp.tool(annotations={'readOnlyHint': True})
     def inspect_report_project(project: str) -> dict:

@@ -60,7 +60,7 @@ if ($Status) {
         $managedPort = [int](Get-Content -LiteralPath $managedSettings -Raw | ConvertFrom-Json).port
         [pscustomobject]@{mode='gateway-supervised';port=$managedPort;
             listening=[bool](Get-NetTCPConnection -State Listen -LocalPort $managedPort -ErrorAction SilentlyContinue);
-            logs=(Join-Path $serviceRoot 'runtime\fedaraka-powerbi-headless.log')} | ConvertTo-Json
+            logs=(Join-Path $serviceRoot 'runtime\stair-powerbi-headless.log')} | ConvertTo-Json
         return
     }
     $owned = OwnedProcess
@@ -209,14 +209,14 @@ try {
         if ($AcceptMicrosoftEula) { $stackArgs.AcceptMicrosoftEula=$true }
         if ($Python) { $stackArgs.Python=$Python }
         & (Join-Path $root 'Start-PowerBI.ps1') @stackArgs
-        $url = 'http://127.0.0.1:' + [int]$stack.frontend_port + '/fedaraka-powerbi-headless/mcp'
+        $url = 'http://127.0.0.1:' + [int]$stack.frontend_port + '/stair-powerbi-headless/mcp'
     }
     Step 7 'Verify MCP protocol, tools and optional thin PBIX build'
     $probeArgs = @((Join-Path $root 'scripts\check_headless.py'),'--url',$url,'--project',$settings.project,'--evidence',(Join-Path $runtime 'mcp-evidence.json'))
     if ($TestBuild) { $probeArgs += '--build' }
     Run $venv $probeArgs
-    @{mcpServers=@{'fedaraka-powerbi-headless'=@{url=$url}}} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $runtime 'mcp-client.json') -Encoding UTF8
-    @('[mcp_servers.fedaraka-powerbi-headless]',('url = "' + $url + '"')) | Set-Content -LiteralPath (Join-Path $runtime 'codex.mcp.toml') -Encoding UTF8
+    @{mcpServers=@{'stair-powerbi-headless'=@{url=$url}}} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $runtime 'mcp-client.json') -Encoding UTF8
+    @('[mcp_servers.stair-powerbi-headless]',('url = "' + $url + '"')) | Set-Content -LiteralPath (Join-Path $runtime 'codex.mcp.toml') -Encoding UTF8
     Write-Host "Headless MCP: $url"
     Write-Host "Client settings: $runtime\mcp-client.json"
     Write-Host "Codex TOML fragment: $runtime\codex.mcp.toml"

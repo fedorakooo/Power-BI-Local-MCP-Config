@@ -304,7 +304,7 @@ class Worker:
 
 def build(config):
     worker = Worker(config)
-    mcp = FastMCP('Power BI Windows Worker')
+    mcp = FastMCP('STAIR Power BI Windows Worker')
 
     @mcp.tool(annotations={'readOnlyHint': False, 'destructiveHint': False, 'idempotentHint': False})
     def save_report(project: str, expected_sha256: str) -> dict:

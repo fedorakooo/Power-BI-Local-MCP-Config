@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 async def main():
     events = []
-    async with streamablehttp_client('http://127.0.0.1:8012/fedaraka-powerbi-modeling/mcp') as (read, write, _):
+    async with streamablehttp_client('http://127.0.0.1:8012/stair-powerbi-modeling/mcp') as (read, write, _):
         async with ClientSession(read, write) as session:
             await session.initialize()
             async def call(tool, request):
@@ -23,7 +23,7 @@ async def main():
                     raise RuntimeError(tool + ' failed; inspect evidence before another write')
                 return parsed[0] if parsed else {}
             instances = (await call('connection_operations', {'operation': 'ListLocalInstances'}))['data']
-            selected = [x for x in instances if x.get('parentWindowTitle') == 'Fedaraka Server Automated - Power BI Desktop (September 2026)']
+            selected = [x for x in instances if x.get('parentWindowTitle') == 'STAIR Server Automated - Power BI Desktop (September 2026)']
             if len(selected) != 1:
                 raise RuntimeError('Expected the exact dedicated Server Automated Desktop instance')
             connected = (await call('connection_operations', {'operation': 'Connect', 'connectionString': selected[0]['connectionString']}))['data']
@@ -31,18 +31,18 @@ async def main():
             listing = await call('measure_operations', {'operation': 'List', 'connectionName': connection,
                 'filter': {'tableNames': ['#Measures'], 'maxResults': 1000}})
             existing = [m['name'] for table in listing['data'] for m in table.get('measures', [])]
-            if 'Fedaraka MCP Win Rate %' in existing:
+            if 'STAIR MCP Win Rate %' in existing:
                 raise RuntimeError('Measure already exists; refusing to repeat the mutation')
             await call('measure_operations', {'operation': 'Create', 'connectionName': connection,
-                'definitions': [{'tableName': '#Measures', 'name': 'Fedaraka MCP Win Rate %',
+                'definitions': [{'tableName': '#Measures', 'name': 'STAIR MCP Win Rate %',
                     'expression': 'DIVIDE([Opportunities Won], [Opportunities], 0)',
-                    'formatString': '0.00%', 'displayFolder': 'Fedaraka MCP'}],
+                    'formatString': '0.00%', 'displayFolder': 'STAIR MCP'}],
                 'options': {'useTransaction': True, 'continueOnError': False}})
             await call('measure_operations', {'operation': 'Get', 'connectionName': connection,
-                'references': [{'tableName': '#Measures', 'name': 'Fedaraka MCP Win Rate %'}]})
-    file = ROOT / 'runtime/release/Fedaraka Server Automated.pbix'
+                'references': [{'tableName': '#Measures', 'name': 'STAIR MCP Win Rate %'}]})
+    file = ROOT / 'runtime/release/STAIR Server Automated.pbix'
     before = hashlib.sha256(file.read_bytes()).hexdigest()
-    async with streamablehttp_client('http://127.0.0.1:8012/fedaraka-powerbi-desktop/mcp') as (read, write, _):
+    async with streamablehttp_client('http://127.0.0.1:8012/stair-powerbi-desktop/mcp') as (read, write, _):
         async with ClientSession(read, write) as session:
             await session.initialize()
             result = await session.call_tool('save_report', {'project': 'rs-automation', 'expected_sha256': before})

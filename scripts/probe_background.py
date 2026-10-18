@@ -9,7 +9,7 @@ from mcp.client.streamable_http import streamablehttp_client
 
 async def probe(root):
     config = json.loads((root/'deployment.local.json').read_text(encoding='utf-8-sig'))
-    base = f"http://127.0.0.1:{config['frontend_port']}/fedaraka-powerbi-"
+    base = f"http://127.0.0.1:{config['frontend_port']}/stair-powerbi-"
     results = []
     for name in ('modeling', 'reportserver', 'authoring', 'headless'):
         async with asyncio.timeout(30):

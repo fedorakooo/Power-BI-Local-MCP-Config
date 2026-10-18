@@ -18,7 +18,7 @@ def configure(root, settings, server):
             # Generate only the synthetic test report from the reviewed repository seed.
             source.mkdir(parents=True)
             (source / 'Report').mkdir()
-            with zipfile.ZipFile(root / 'reports/Fedaraka Server Automated.pbix') as archive:
+            with zipfile.ZipFile(root / 'reports/STAIR Server Automated.pbix') as archive:
                 report = json.loads(archive.read('Report/Layout').decode('utf-16-le'))
                 page = copy.deepcopy(next(p for p in report['sections'] if p['displayName'] == 'Page 1'))
                 page.update(displayName='Headless SSAS validation', ordinal=0, filters='[]', config='{}')
@@ -26,6 +26,7 @@ def configure(root, settings, server):
                     for key in ('config', 'query', 'dataTransforms'):
                         visual[key] = (visual[key].replace('#Measures', 'Sales')
                             .replace('Fedaraka MCP Win Rate %', 'Win Rate % v2')
+                            .replace('STAIR MCP Win Rate %', 'Win Rate % v2')
                             .replace('dim_SaleTeams', 'Sales').replace('manager', 'Manager'))
                 report['sections'] = [page]
                 report_config = json.loads(report['config'])

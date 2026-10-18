@@ -89,7 +89,7 @@ def configure(root, settings_path, node, validate_only=False, progress=False):
     emit(5, 'Generate actor scopes and Desktop report enrollment')
     credential = runtime/'pbirs-credential.xml'
     actors = {name: {'scopes': ['read', 'backup', 'publish'], 'reports': [settings['report_alias']],
-                     'credential_path': str(credential)} for name in ('local-operator', 'fedaraka')}
+                     'credential_path': str(credential)} for name in ('local-operator', 'stair')}
     config = {'portal': settings['portal'], 'data_root': str(runtime), 'release_root': str(release),
               'credential_path': str(credential), 'write_enabled': bool(settings['enable_publication']),
               'reports': {settings['report_alias']: settings['report_id']}, 'clients': actors,
@@ -130,17 +130,17 @@ def configure(root, settings_path, node, validate_only=False, progress=False):
     commands = [
         {'command': str(binaries[0]), 'args': ['--start', '--readwrite', '--accepteula']},
         {'command': python, 'args': [str(service/'server.py'), '--config', str(config_path)],
-         'env': {'PBIRS_STDIO_ACTOR': 'fedaraka'}},
+         'env': {'PBIRS_STDIO_ACTOR': 'stair'}},
         {'command': python, 'args': ['-m', 'pbirs_mcp.report_authoring', '--config', str(config_path)]},
         {'command': python, 'args': ['-m', 'pbirs_mcp.windows_worker', '--config', str(config_path)]},
     ]
-    manifest = {'mcpServers': {f'fedaraka-powerbi-{name}': dict(command, port=port+i+1)
+    manifest = {'mcpServers': {f'stair-powerbi-{name}': dict(command, port=port+i+1)
                               for i, (name, command) in enumerate(zip(NAMES, commands))}}
     (service/'gateway/servers.local.json').write_text(json.dumps(manifest, indent=2))
     emit(7, 'Generate IP-restricted Caddy routes')
     routes = []
     for i, name in enumerate(NAMES):
-        routes.append(f'        handle_path /fedaraka-powerbi-{name}/* {{\n            reverse_proxy 127.0.0.1:{port+i+1} {{\n                flush_interval -1\n            }}\n        }}')
+        routes.append(f'        handle_path /stair-powerbi-{name}/* {{\n            reverse_proxy 127.0.0.1:{port+i+1} {{\n                flush_interval -1\n            }}\n        }}')
     caddy = '{\n    admin off\n    auto_https off\n    persist_config off\n}\n'
     caddy += f':{port} {{\n    @allowed remote_ip ' + ' '.join(allowed) + '\n    handle @allowed {\n'
     caddy += '\n'.join(routes) + '\n    }\n    respond "Forbidden" 403\n}\n'
@@ -149,7 +149,7 @@ def configure(root, settings_path, node, validate_only=False, progress=False):
     generated = root/'generated'
     generated.mkdir(exist_ok=True)
     aliases = ('powerbi_modeling_local', 'powerbi_reportserver_local', 'powerbi_reportauthoring_local', 'powerbi_desktop_local')
-    urls = {alias: f'http://127.0.0.1:{port}/fedaraka-powerbi-{name}/mcp' for alias, name in zip(aliases, NAMES)}
+    urls = {alias: f'http://127.0.0.1:{port}/stair-powerbi-{name}/mcp' for alias, name in zip(aliases, NAMES)}
     toml = '\n'.join(f'[mcp_servers.{alias}]\nurl = "{url}"\nstartup_timeout_sec = 60\ntool_timeout_sec = 120\n' +
         ('enabled_tools = ["connection_operations", "database_operations", "model_operations", "table_operations", "column_operations", "relationship_operations", "measure_operations", "dax_query_operations", "transaction_operations"]\n' if alias == 'powerbi_modeling_local' else '')
         for alias, url in urls.items())

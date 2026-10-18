@@ -10,7 +10,7 @@ services/**/servers.local.json
 
 # Private artifacts
 *.pbix
-!/reports/Fedaraka Server Automated.pbix
+!/reports/STAIR Server Automated.pbix
 *.pbit
 *.zip
 *.pem

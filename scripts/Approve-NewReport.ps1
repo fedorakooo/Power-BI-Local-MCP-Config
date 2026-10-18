@@ -3,7 +3,7 @@ param(
     [Parameter(Mandatory=$true)][ValidatePattern('^[A-Za-z0-9_-]+\.pbix$')][string]$FileName,
     [Parameter(Mandatory=$true)][ValidatePattern('^[0-9a-f]{64}$')][string]$ExpectedSha256,
     [Parameter(Mandatory=$true)][ValidatePattern('^[A-Za-z0-9_-]+$')][string]$Destination,
-    [ValidatePattern('^[A-Za-z0-9_-]+$')][string]$Actor = 'fedaraka'
+    [ValidatePattern('^[A-Za-z0-9_-]+$')][string]$Actor = 'stair'
 )
 # Operator-only approval gate. Do not expose this script as an MCP tool.
 $ErrorActionPreference='Stop'

@@ -5,7 +5,7 @@ from pathlib import Path
 
 root = Path(__file__).resolve().parents[1]
 destination = Path(sys.argv[1]).resolve()
-files = [root / name for name in ('.gitignore', 'README.md', 'FEDARAKA.md', 'LOCAL-CODEX.md', 'LOCAL-VALIDATION.md', 'NEW-WINDOWS.md', 'TEST-PROMPT.md', 'requirements.txt', 'requirements-lock.txt', 'server.py')]
+files = [root / name for name in ('.gitignore', 'README.md', 'STAIR.md', 'LOCAL-CODEX.md', 'LOCAL-VALIDATION.md', 'NEW-WINDOWS.md', 'TEST-PROMPT.md', 'requirements.txt', 'requirements-lock.txt', 'server.py')]
 for directory in ('pbirs_mcp', 'scripts', 'tests'):
     files.extend(p for p in (root / directory).iterdir() if p.suffix in ('.py', '.ps1'))
 files.extend([root / 'modeling/package.json', root / 'modeling/pnpm-lock.yaml'])

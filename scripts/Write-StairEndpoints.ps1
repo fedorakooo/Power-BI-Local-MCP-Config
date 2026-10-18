@@ -15,14 +15,14 @@ if ([uri]::CheckHostName($PublicHost) -eq [UriHostNameType]::Unknown) {
 $urlHost = if ($PublicHost.Contains(':')) { '[' + $PublicHost + ']' } else { $PublicHost }
 $port = [int]$settings.frontend_port
 $tools = @(
-    @{name='Fedaraka Power BI Modeling'; route='modeling'; backend_port=$port+1},
-    @{name='Fedaraka Power BI Report Server'; route='reportserver'; backend_port=$port+2},
-    @{name='Fedaraka Power BI Authoring'; route='authoring'; backend_port=$port+3},
-    @{name='Fedaraka Power BI Desktop'; route='desktop'; backend_port=$port+4}
+    @{name='STAIR Power BI Modeling'; route='modeling'; backend_port=$port+1},
+    @{name='STAIR Power BI Report Server'; route='reportserver'; backend_port=$port+2},
+    @{name='STAIR Power BI Authoring'; route='authoring'; backend_port=$port+3},
+    @{name='STAIR Power BI Desktop'; route='desktop'; backend_port=$port+4}
 )
-if ($HeadlessPort) { $tools += @{name='Fedaraka Power BI Headless'; route='headless'; backend_port=$HeadlessPort} }
+if ($HeadlessPort) { $tools += @{name='STAIR Power BI Headless'; route='headless'; backend_port=$HeadlessPort} }
 $toolsets = @($tools | ForEach-Object {
-    [ordered]@{name=$_.name; transport='streamable-http'; url="http://${urlHost}:$port/fedaraka-powerbi-$($_.route)/mcp"; authentication='none'; internal_backend_port=$_.backend_port}
+    [ordered]@{name=$_.name; transport='streamable-http'; url="http://${urlHost}:$port/stair-powerbi-$($_.route)/mcp"; authentication='none'; internal_backend_port=$_.backend_port}
 })
 $payload = [ordered]@{public_host=$PublicHost; proxy_port=$port; allowed_addresses=@($settings.allowed_addresses); access_from_stair='not_verified'; toolsets=$toolsets}
 $payload | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $destination -Encoding UTF8

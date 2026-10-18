@@ -16,11 +16,11 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 async def main():
-    file_name = sys.argv[1] if len(sys.argv) > 1 else 'Fedaraka Automated.pbix'
+    file_name = sys.argv[1] if len(sys.argv) > 1 else 'STAIR Automated.pbix'
     if Path(file_name).name != file_name or not file_name.endswith('.pbix'):
         raise ValueError('Use a release filename, not a path')
     events = []
-    async with streamablehttp_client('http://127.0.0.1:8012/fedaraka-powerbi-reportserver/mcp') as (read, write, _):
+    async with streamablehttp_client('http://127.0.0.1:8012/stair-powerbi-reportserver/mcp') as (read, write, _):
         async with ClientSession(read, write) as session:
             await session.initialize()
 
@@ -37,14 +37,14 @@ async def main():
                 raise RuntimeError(body)
             items = json.loads(body)
             stage = next(x for x in items if x['alias'] == 'staging')
-            if stage['path'] != '/Fedaraka MCP Validation/Sales Teams Quarterly Performance':
+            if stage['path'] != '/STAIR MCP Validation/Sales Teams Quarterly Performance':
                 raise RuntimeError('Staging target mismatch; refusing to approve or publish')
             error, body = await call('download_report_backup', {'report': 'staging'})
             if error:
                 raise RuntimeError(body)
             backup = json.loads(body)
             command = await asyncio.create_subprocess_exec(sys.executable, '-m', 'pbirs_mcp.admin',
-                'approve', '--actor', 'fedaraka', '--report', 'staging', '--action', 'publish',
+                'approve', '--actor', 'stair', '--report', 'staging', '--action', 'publish',
                 '--file', str(ROOT / 'runtime/release' / file_name),
                 '--expected-current-sha256', backup['sha256'], cwd=ROOT,
                 stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)

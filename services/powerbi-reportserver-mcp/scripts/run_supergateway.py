@@ -62,7 +62,7 @@ try:
     config = json.loads((root / 'gateway/servers.local.json').read_text(encoding='utf-8-sig'))
     node = paths['node']
     for i, (name, server) in enumerate(config['mcpServers'].items()):
-        is_desktop = name == 'fedaraka-powerbi-desktop'
+        is_desktop = name == 'stair-powerbi-desktop'
         if (mode == 'background' and is_desktop) or (mode == 'desktop' and not is_desktop):
             continue
         command = subprocess.list2cmdline([server['command'], *server['args']])
@@ -71,7 +71,7 @@ try:
                '--sessionTimeout', '900000', '--port', str(server.get('port', 8013 + i)), '--healthEndpoint', '/healthz'], name, env)
     env = dict(os.environ)
     if mode != 'desktop' and (root / 'runtime/headless-supervisor.json').is_file():
-        start([sys.executable, str(root / 'scripts/supervise_headless.py')], 'fedaraka-powerbi-headless', env)
+        start([sys.executable, str(root / 'scripts/supervise_headless.py')], 'stair-powerbi-headless', env)
     if mode != 'desktop':
         start([sys.executable, str(root / 'scripts/supervise_caddy.py')], 'caddy', env)
     process_file = 'desktop-processes.json' if mode == 'desktop' else 'gateway-processes.json'

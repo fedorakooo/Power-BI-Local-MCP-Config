@@ -17,7 +17,7 @@ async def main():
     records = []
     for name, label in [('modeling', 'Modeling'), ('reportserver', 'Report Server')]:
         async with streamablehttp_client(
-            f'http://127.0.0.1:8012/fedaraka-powerbi-{name}/mcp',
+            f'http://127.0.0.1:8012/stair-powerbi-{name}/mcp',
         ) as (read, write, _):
             async with ClientSession(read, write) as session:
                 await session.initialize()
@@ -25,18 +25,18 @@ async def main():
                 schemas = [t.model_dump(mode='json', exclude_none=True) for t in response.tools
                            if name != 'modeling' or t.name in MODELING]
         records.append({
-            'name': f"Fedaraka's Power BI {label}",
-            'description': "Fedaraka's personal Windows Power BI pilot. Locally verified schemas; "
+            'name': f"STAIR Power BI {label}",
+            'description': "STAIR Windows Power BI pilot. Locally verified schemas; "
                            "STAIR network connectivity pending. Do not enable until remote discovery succeeds.",
             'overview': ("Inspect and change Desktop semantic models after explicit approval. "
                          "Cannot edit visuals or save Desktop PBIX." if name == 'modeling' else
                          "List authorized reports, return links, back up, publish reviewed saved PBIX, "
                          "and restore. Publishing and restore require an operator-issued one-use approval."),
-            'mcpBaseUrl': f'http://report-server.example.com:8012/fedaraka-powerbi-{name}/mcp',
+            'mcpBaseUrl': f'http://report-server.example.com:8012/stair-powerbi-{name}/mcp',
             'enabled': False, 'stateful': True, 'authMode': 'NONE',
-            'settings': {}, 'tools': schemas, 'tags': ['fedaraka', 'powerbi'],
+            'settings': {}, 'tools': schemas, 'tags': ['stair', 'powerbi'],
         })
-    destination = ROOT / 'runtime/fedaraka-stair-toolsets.zip'
+    destination = ROOT / 'runtime/stair-powerbi-toolsets.zip'
     with zipfile.ZipFile(destination, 'w', zipfile.ZIP_DEFLATED) as bundle:
         bundle.writestr('tool_sets_data.json', json.dumps(records))
     print('Created disabled toolset bundle without credentials: ' + str(destination))
