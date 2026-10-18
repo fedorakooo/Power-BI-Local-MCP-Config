@@ -95,4 +95,20 @@ An earlier outage left Caddy listening while every backend had stopped. The task
 reported STATUS_CONTROL_C_EXIT; the initiating cause was not established. The
 supervisor now uses pythonw and starts Caddy through a parent-pipe guard. A real
 Windows process regression closes the guard's parent pipe and verifies that both
-guard and child exit. This fix was tested locally; target rollout is separate.
+guard and child exit. This fix was tested locally before target rollout.
+
+Follow-up: a Windows-token DAX check under the actual report viewer reproduced
+lack of access to the synthetic database. Explicit enrollment in its Read role
+resolved the query failure (0.4916). The operator refreshed the published report
+and confirmed that visuals display. This is operator confirmation of rendering;
+no automated browser screenshot was obtained.
+
+Target rollout subsequently passed the five MCP protocol checks. An SSH disconnect
+test exposed that a detached headless process was terminated with the SSH job.
+Combined startup now runs headless under the existing scheduled supervisor with
+its own parent-pipe guard. After applying this change, the startup SSH session
+ended, and a separate SSH connection confirmed all six listeners remained present
+and headless MCP initialized/listed/inspected through Caddy successfully.
+Interactive logon ownership, dynamic SSAS ports, and test-only SQL Developer
+licensing still apply. This synthetic lab validation does not establish unattended
+production operation or arbitrary customer PBIX migration.
