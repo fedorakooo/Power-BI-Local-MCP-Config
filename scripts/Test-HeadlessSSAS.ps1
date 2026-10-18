@@ -4,6 +4,7 @@ param(
     [switch]$CreateSyntheticModel,
     [switch]$DeployTestMeasure,
     [switch]$EnsureSyntheticModel,
+    [switch]$InspectRoles,
     [string]$EvidencePath
 )
 $ErrorActionPreference = 'Stop'
@@ -75,12 +76,18 @@ try {
             $base = [double]$reader.GetValue(0); $cara = [double]$reader.GetValue(1)
             if ([math]::Abs($base - 0.4816) -gt 0.0000001 -or [math]::Abs($cara - 0.4979) -gt 0.0000001) { throw 'Synthetic DAX results do not match expected data.' }
             $result = [ordered]@{status='ssas_headless_verified';server=$Server;database=$databaseName;data='synthetic-test-only';base=$base;Cara=$cara;gui_save_used=$false;test_measure_present=$hasV2;reportserver_render_verified=$false}
+            if ($InspectRoles) {
+                $result.test_identity = [Security.Principal.WindowsIdentity]::GetCurrent().Name
+                $result.database_roles = @($database.Model.Roles | ForEach-Object {
+                    [ordered]@{name=$_.Name;permission=[string]$_.ModelPermission;members=@($_.Members | ForEach-Object { $_.MemberName })}
+                })
+            }
             if ($hasV2) {
                 $updated = [double]$reader.GetValue(2)
                 if ([math]::Abs($updated - 0.4916) -gt 0.0000001) { throw 'Deployed measure DAX verification failed.' }
                 $result.updated = $updated
             }
-            $json = $result | ConvertTo-Json
+            $json = $result | ConvertTo-Json -Depth 6
             if ($EvidencePath) { $json | Set-Content -LiteralPath $EvidencePath -Encoding UTF8 }
             $json
         } finally { $reader.Close(); $command.Dispose() }

@@ -62,6 +62,20 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\PowerBI-MCP\Start-Hea
 Лабораторный экземпляр имеет ручной запуск; скрипт запускает его и обнаруживает TCP-порт.
 После перезапуска SSAS снова запустите скрипт для обновления подключения в тестовом отчёте.
 
+Если опубликованный отчёт сообщает «Не удалось подключиться к серверу служб Analysis
+Services», выполните на сервере под владельцем установки:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\PowerBI-MCP\scripts\Diagnose-ReportServerSSAS.ps1
+```
+
+Это только диагностика: службы и текущий порт тестового SSAS, источник опубликованного
+отчёта без секретов, DAX под оператором, роли базы и ограниченные строки журналов.
+Можно добавить `-RequestId <GUID>` из ошибки. Успешный DAX под администратором
+не подтверждает права пользователя отчёта. Скрипт не меняет роли, аутентификацию,
+порты и опубликованный PBIX. Вывод с именами учётных записей предназначен для
+внутренней диагностики; не публикуйте его в открытом репозитории.
+
 ```powershell
 powershell.exe -NoProfile -File C:\PowerBI-MCP\Start-Headless.ps1 -Status
 powershell.exe -NoProfile -File C:\PowerBI-MCP\Start-Headless.ps1 -Stop
