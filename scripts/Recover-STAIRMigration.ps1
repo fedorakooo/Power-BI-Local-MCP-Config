@@ -33,6 +33,9 @@ $report=[string]$config.desktop_reports.'rs-automation';$stairReport=$report -re
 if($report -ne $stairReport -and (Test-Path -LiteralPath $report)){if(Test-Path -LiteralPath $stairReport){throw 'Both legacy and STAIR working PBIX files exist.'};Move-Item -LiteralPath $report -Destination $stairReport}
 $oldProject=Join-Path $root 'headless\created-reports\fedaraka-dynamic-sales';$newProject=Join-Path $root 'headless\created-reports\stair-dynamic-sales'
 if((Test-Path $oldProject) -and !(Test-Path $newProject)){Move-Item -LiteralPath $oldProject -Destination $newProject}
+# Refresh generated Windows and STAIR endpoint files after the server-side config rename.
+$clientFiles=@((Join-Path $root 'generated\stair-endpoints.json'),(Join-Path $root 'generated\codex-mcp.toml'),(Join-Path $runtime 'headless\mcp-client.json'),(Join-Path $runtime 'headless\codex.mcp.toml'))
+foreach($file in $clientFiles){if(Test-Path -LiteralPath $file){$text=Get-Content -LiteralPath $file -Raw;$text=$text.Replace('fedaraka','stair').Replace('Fedaraka','STAIR').Replace('FEDARAKA','STAIR');[IO.File]::WriteAllText($file,$text,(New-Object Text.UTF8Encoding($false)))}}
 # Validate current canonical routes; legacy aliases stay live while STAIR toolsets refresh.
 $caddy=Join-Path $service 'gateway\Caddyfile';$caddyText=Get-Content $caddy -Raw
 foreach($route in @('modeling','reportserver','authoring','desktop','headless')){if($caddyText -notmatch ('handle_path /stair-powerbi-'+$route+'/\*')){throw ('Missing canonical STAIR route: '+$route)}}

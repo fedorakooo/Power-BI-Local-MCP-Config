@@ -20,6 +20,8 @@ function Rebrand([string]$Value) { $Value.Replace('fedaraka','stair').Replace('F
 function Write-Utf8([string]$Path,[string]$Value) { [IO.File]::WriteAllText($Path,$Value,(New-Object Text.UTF8Encoding($false))) }
 $jsonFiles=@($installationPath,(Join-Path $Root 'deployment.local.json'),(Join-Path $runtime 'unattended.json'),(Join-Path $service 'config.local.json'),(Join-Path $service 'gateway\servers.local.json'),(Join-Path $Root 'headless\config.local.json'))
 for($i=0;$i -lt $jsonFiles.Count;$i++) { Copy-Item -LiteralPath $jsonFiles[$i] -Destination (Join-Path $snapshot ("config-$i.json")) }
+$clientFiles=@((Join-Path $Root 'generated\stair-endpoints.json'),(Join-Path $Root 'generated\codex-mcp.toml'),(Join-Path $runtime 'headless\mcp-client.json'),(Join-Path $runtime 'headless\codex.mcp.toml'))
+foreach($path in $clientFiles) { if(Test-Path -LiteralPath $path) { Copy-Item -LiteralPath $path -Destination (Join-Path $snapshot ('client-'+[IO.Path]::GetFileName($path))) } }
 $tasks=@()
 foreach($suffix in @('-Health','-Backup','-Desktop','')) {
     $task=Get-ScheduledTask -TaskName ($oldTask+$suffix) -ErrorAction SilentlyContinue
@@ -84,6 +86,7 @@ if (Test-Path -LiteralPath $oldProject) {
     Write-Utf8 $meta (Rebrand (Get-Content $meta -Raw))
 }
 foreach($file in $jsonFiles) { Write-Utf8 $file (Rebrand (Get-Content -LiteralPath $file -Raw)) }
+$clientFiles | Where-Object { Test-Path -LiteralPath $_ } | ForEach-Object { Write-Utf8 $_ (Rebrand (Get-Content -LiteralPath $_ -Raw)) }
 $installation=Get-Content $installationPath -Raw | ConvertFrom-Json
 $installation.settings_sha256=(Get-FileHash -LiteralPath (Join-Path $Root 'deployment.local.json')).Hash
 Write-Utf8 $installationPath ($installation | ConvertTo-Json)
