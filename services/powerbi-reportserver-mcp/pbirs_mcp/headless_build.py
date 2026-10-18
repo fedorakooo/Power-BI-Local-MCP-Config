@@ -10,6 +10,7 @@ import subprocess
 import uuid
 import zipfile
 from pathlib import Path
+from .dynamic_reports import DynamicReports, ReportPage
 
 from mcp.server.fastmcp import FastMCP
 
@@ -44,6 +45,8 @@ class ThinReportBuilder:
 
     def project(self, alias):
         settings = self.config.get('headless_projects', {}).get(alias)
+        if not settings and self.config.get('headless_creation_root'):
+            settings = DynamicReports(self.config).entry(alias)
         if not settings or not re.fullmatch(r'[A-Za-z0-9_-]{1,60}', alias):
             raise PermissionError('Headless project is not enrolled')
         raw_root = Path(settings['source_root'])
@@ -75,6 +78,11 @@ class ThinReportBuilder:
         layout = json.loads((root / 'Report/report.json').read_text(encoding='utf-8-sig'))
         return {'project': alias, 'revision': revision(root), 'backend': 'pbi-tools-thin-pbix',
             'pages': [p['displayName'] for p in layout.get('sections', [])],
+            'page_details': [{'title': p['displayName'], 'visuals': [
+                {'type': (c := json.loads(v.get('config', '{}'))).get('singleVisual', {}).get('visualType'),
+                 'title': c.get('singleVisual', {}).get('vcObjects', {}).get('title', []),
+                 'bindings': c.get('singleVisual', {}).get('projections', {})}
+                for v in p.get('visualContainers', [])]} for p in layout.get('sections', [])],
             'gui_save_required': False, 'ssas_connection_verified': False,
             'reportserver_compatibility_verified': False, 'experimental': True}
 
@@ -136,7 +144,29 @@ class ThinReportBuilder:
 
 def build_mcp(config, **settings):
     service = ThinReportBuilder(config)
+    creator = DynamicReports(config)
     mcp = FastMCP('Power BI Headless Thin Report Build (experimental)', **settings)
+
+    @mcp.tool(annotations={'readOnlyHint': True})
+    def list_report_workspace() -> dict:
+        """List operator-enrolled SSAS models/fields and existing managed report projects. Models are live SSAS, not embedded import datasets."""
+        reports = list(config.get('headless_projects', {}))
+        if creator.root and creator.root.exists():
+            reports += [p.name for p in creator.root.iterdir() if p.is_dir() and (p / '.mcp-created-report.json').is_file()]
+        return {'models': creator.models(), 'projects': sorted(set(reports)),
+                'supported_visuals': ['card', 'columnChart', 'slicer'], 'canvas': {'width': 1280, 'height': 720}}
+
+    @mcp.tool(annotations={'readOnlyHint': False, 'destructiveHint': False, 'idempotentHint': False})
+    def create_dynamic_report(project: str, model: str, title: str, pages: list[ReportPage]) -> dict:
+        """Create a NEW report from declarative pages and visuals on an enrolled live SSAS model. Never copies old pages/visuals, changes SSAS data, overwrites projects, builds or publishes. Use listed fields only; then inspect and build with returned revision."""
+        result = creator.create(project, model, title, pages)
+        result['revision'] = service.inspect(project)['revision']
+        return result
+
+    @mcp.tool(annotations={'readOnlyHint': False, 'destructiveHint': True, 'idempotentHint': False})
+    def update_dynamic_report(project: str, expected_revision: str, pages: list[ReportPage]) -> dict:
+        """Replace page/visual definitions only in a creator-managed report; back up the previous layout and require current revision. Does not update a published report or the SSAS model. Provide the COMPLETE intended page list."""
+        return creator.update(project, expected_revision, pages)
 
     @mcp.tool(annotations={'readOnlyHint': True})
     def inspect_headless_report(project: str) -> dict:

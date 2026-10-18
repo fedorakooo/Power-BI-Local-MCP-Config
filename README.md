@@ -206,3 +206,8 @@ The owner-authorized validation PBIX, including its report data, is included pub
 Saved credentials, local configurations and runtime environments are excluded.
 Microsoft dependencies remain governed by their respective licenses.
 See [verification scope](VALIDATION.md).
+
+Headless MCP also supports creating and revising new SSAS live reports with KPI
+cards, column charts and slicers. See [report authoring](headless/REPORT-AUTHORING.ru.md)
+for the bounded model schema, tools, new-report destination enrollment and required
+operator publication approval. Source creation alone does not publish a report.

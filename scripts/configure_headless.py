@@ -69,6 +69,17 @@ def configure(root, settings, server):
         'headless_dotnet_root': str(root / 'tools/headless/dotnet'),
         'headless_projects': {settings['project']: {'source_root': str(source),
             'report_version': settings['report_version'], 'connection_string': connection}}}
+    config['headless_creation_root'] = str(root / 'headless/created-reports')
+    if settings['mode'] == 'lab':
+        config['headless_creation_profiles'] = {settings['project']: {
+            'description': 'Synthetic sales lab: Manager, Win Rate %, Win Rate % v2. Live SSAS; no embedded model.',
+            'compatibility_source': str(source), 'report_version': settings['report_version'],
+            'connection_string': connection, 'schema': {'Sales': {
+                'columns': {'Manager': {'type': 'string'}},
+                'measures': {'Win Rate %': {'format': '0.00%'}, 'Win Rate % v2': {'format': '0.00%'}}}}}}
+    else:
+        # Existing customer models need an explicitly supplied field schema.
+        config['headless_creation_profiles'] = settings.get('creation_profiles', {})
     import sys
     sys.path.insert(0, str(root / 'services/powerbi-reportserver-mcp'))
     from pbirs_mcp.headless_build import ThinReportBuilder

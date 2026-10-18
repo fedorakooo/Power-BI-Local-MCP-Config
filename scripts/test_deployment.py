@@ -50,5 +50,18 @@ class DeploymentTests(unittest.TestCase):
         self.settings['allowed_addresses']=['127.0.0.1']; self.settings['report_file']='../outside.pbix'; self.write()
         with self.assertRaises(ValueError):configure(self.root,self.path,'',True)
 
+    def test_repeat_setup_preserves_explicit_new_report_destinations(self):
+        configure(self.root,self.path,str(self.node))
+        path=self.service/'config.local.json'
+        config=json.loads(path.read_text())
+        config['new_report_destinations']={'new-sales':{'folder':'/Test','name':'New Sales'}}
+        config['clients']['fedaraka']['create_reports']=['new-sales']
+        path.write_text(json.dumps(config))
+        configure(self.root,self.path,str(self.node))
+        config=json.loads(path.read_text())
+        self.assertEqual(config['new_report_destinations']['new-sales']['name'],'New Sales')
+        self.assertIn('create',config['clients']['fedaraka']['scopes'])
+        self.assertIn('new-sales',config['clients']['fedaraka']['reports'])
+
 
 if __name__=='__main__':unittest.main()

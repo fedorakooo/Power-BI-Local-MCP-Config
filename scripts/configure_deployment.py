@@ -97,6 +97,22 @@ def configure(root, settings_path, node, validate_only=False, progress=False):
               'desktop_reports': {settings['project_alias']: str(working)},
               'desktop_save_targets': {settings['project_alias']: str(working)}, 'authoring_projects': {}}
     config_path = service/'config.local.json'
+    if config_path.exists():
+        previous = json.loads(config_path.read_text(encoding='utf-8-sig'))
+        destinations = previous.get('new_report_destinations', {})
+        if destinations:
+            if previous.get('portal', '').rstrip('/') != config['portal'].rstrip('/'):
+                raise ValueError('Existing new-report destinations belong to another portal; review enrollment before changing server')
+            if set(destinations) & set(config['reports']):
+                raise ValueError('New-report destination alias conflicts with the configured existing report')
+            config['new_report_destinations'] = destinations
+            for actor, client in actors.items():
+                enrolled = previous.get('clients', {}).get(actor, {}).get('create_reports', [])
+                enrolled = [alias for alias in enrolled if alias in destinations]
+                if enrolled:
+                    client['create_reports'] = enrolled
+                    client['scopes'].append('create')
+                    client['reports'] += [alias for alias in enrolled if alias not in client['reports']]
     config_path.write_text(json.dumps(config, indent=2), encoding='utf-8')
     (runtime/'gateway-paths.json').write_text(json.dumps({'node': str(Path(node).resolve())}))
     emit(6, 'Locate Modeling MCP and generate four gateway commands')

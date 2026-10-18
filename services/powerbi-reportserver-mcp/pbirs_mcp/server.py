@@ -91,6 +91,11 @@ def build_mcp(service):
         """
         return service.publish_reviewed_pbix(actor_var.get(), report, file_name, approval_id)
 
+    @mcp.tool(annotations={'readOnlyHint': False, 'destructiveHint': False, 'idempotentHint': False})
+    def publish_new_reviewed_pbix(destination: str, file_name: str, approval_id: str) -> dict:
+        """Create a NEW catalog report at an operator-enrolled destination alias. Requires a one-use operator create approval bound to artifact SHA256 and exact catalog path. Never overwrites an existing item. Verify returned download hash; rendering is separate. Never automatically retry an error or uncertain outcome."""
+        return service.publish_new_reviewed_pbix(actor_var.get(), destination, file_name, approval_id)
+
     @mcp.tool(annotations={'readOnlyHint': False, 'destructiveHint': True, 'idempotentHint': False})
     def restore_previous_pbix(report: str, backup_id: str, approval_id: str) -> dict:
         """Restore an authorized backup; requires a fresh operator-issued restore approval."""

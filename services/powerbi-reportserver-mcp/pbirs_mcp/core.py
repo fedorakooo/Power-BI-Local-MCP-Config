@@ -69,7 +69,7 @@ class Service:
         self.backend = backend or PowerShellBackend(portal, config.get('credential_path'))
         self.root = Path(config['data_root']).resolve()
         self.release = Path(config['release_root']).resolve()
-        for folder in ('backups', 'approvals', 'consumed', 'staging', 'locks'):
+        for folder in ('backups', 'approvals', 'consumed', 'staging', 'locks', 'catalog-enrollments'):
             (self.root / folder).mkdir(parents=True, exist_ok=True)
         self.release.mkdir(parents=True, exist_ok=True)
         for alias, report_id in config.get('reports', {}).items():
@@ -80,9 +80,20 @@ class Service:
         client = self.config.get('clients', {}).get(actor)
         if not client or scope not in client.get('scopes', []):
             raise PermissionError('Operation not permitted')
-        if report is not None and (report not in client.get('reports', []) or report not in self.config['reports']):
+        if report is not None and (report not in client.get('reports', []) or report not in self.report_ids()):
             raise PermissionError('Report not permitted')
         return client
+
+    def report_ids(self):
+        result = dict(self.config.get('reports', {}))
+        for alias, target in self.config.get('new_report_destinations', {}).items():
+            record = self.root / 'catalog-enrollments' / (identifier(alias) + '.json')
+            if record.is_file():
+                data = json.loads(record.read_text(encoding='utf-8'))
+                if data['path'] != target['folder'] + '/' + target['name']:
+                    raise PermissionError('Created report enrollment differs from the configured destination')
+                result[alias] = str(uuid.UUID(data['id']))
+        return result
 
     def _call(self, actor, operation, **kwargs):
         if isinstance(self.backend, PowerShellBackend):
@@ -99,13 +110,13 @@ class Service:
         if not client.get('reports'):
             return []
         catalog = self._call(actor, 'list')['reports']
-        allowed = {v: k for k, v in self.config['reports'].items() if k in client.get('reports', [])}
+        allowed = {v: k for k, v in self.report_ids().items() if k in client.get('reports', [])}
         return [dict(alias=allowed[str(x['Id'])], name=x['Name'], path=x['Path'])
                 for x in catalog if str(x['Id']) in allowed]
 
     def get_report_link(self, actor, report):
         self.authorize(actor, report, 'read')
-        item = self._call(actor, 'get', report_id=self.config['reports'][report])['report']
+        item = self._call(actor, 'get', report_id=self.report_ids()[report])['report']
         path = item['Path']
         if not path.startswith('/'):
             raise RuntimeError('Invalid catalog path')
@@ -128,7 +139,7 @@ class Service:
     def _backup(self, actor, report):
         backup_id = uuid.uuid4().hex
         path = self.root / 'backups' / (backup_id + '.pbix')
-        self._call(actor, 'download', report_id=self.config['reports'][report], destination=str(path))
+        self._call(actor, 'download', report_id=self.report_ids()[report], destination=str(path))
         digest = sha256(path)
         meta = dict(backup_id=backup_id, report=report, sha256=digest, created_at=time.time())
         path.with_suffix('.json').write_text(json.dumps(meta), encoding='utf-8')
@@ -163,7 +174,7 @@ class Service:
             staging = self.root / 'staging' / uuid.uuid4().hex
             staging.mkdir()
             try:
-                item = self._call(actor, 'get', report_id=self.config['reports'][report])['report']
+                item = self._call(actor, 'get', report_id=self.report_ids()[report])['report']
                 name = item['Name']
                 if not name or any(c in name for c in '<>:"/\\|?*') or name in ('.', '..'):
                     raise ValueError('Unsafe report name from catalog')
@@ -183,9 +194,9 @@ class Service:
                 log.info('pbirs_publish_started', extra={'stair.actor': actor, 'stair.report': report,
                          'stair.approval.id': approval_id, 'stair.backup.id': backup['backup_id']})
                 try:
-                    self._call(actor, 'upload', report_id=self.config['reports'][report], source=str(prepared))
+                    self._call(actor, 'upload', report_id=self.report_ids()[report], source=str(prepared))
                     verified = staging / 'verification.pbix'
-                    self._call(actor, 'download', report_id=self.config['reports'][report], destination=str(verified))
+                    self._call(actor, 'download', report_id=self.report_ids()[report], destination=str(verified))
                     matches = sha256(verified) == digest
                 except Exception as error:
                     log.error('pbirs_publish_outcome_uncertain', extra={'stair.actor': actor, 'stair.report': report,
@@ -208,6 +219,10 @@ class Service:
         if not source.is_relative_to(self.release):
             raise ValueError('File must remain inside release_root')
         return self._publish(actor, report, source, approval_id, 'publish')
+
+    def publish_new_reviewed_pbix(self, actor, destination, file_name, approval_id):
+        from .new_reports import publish
+        return publish(self, actor, destination, file_name, approval_id)
 
     def restore_previous_pbix(self, actor, report, backup_id, approval_id):
         self.authorize(actor, report, 'publish')

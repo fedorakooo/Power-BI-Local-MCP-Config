@@ -22,4 +22,5 @@ services/**/servers.local.json
 headless/config.local.json
 headless.deployment.local.json
 headless/projects/
+headless/created-reports/
 tools/

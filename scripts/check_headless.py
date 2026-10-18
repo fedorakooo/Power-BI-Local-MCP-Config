@@ -18,7 +18,8 @@ async def check(args):
         async with ClientSession(read, write) as session:
             await session.initialize()
             tools = [tool.name for tool in (await session.list_tools()).tools]
-            if set(tools) != {'inspect_headless_report', 'build_headless_report'}:
+            if set(tools) != {'inspect_headless_report', 'build_headless_report',
+                    'list_report_workspace', 'create_dynamic_report', 'update_dynamic_report'}:
                 raise RuntimeError('Unexpected MCP inventory')
             inspected = data(await session.call_tool('inspect_headless_report', {'project': args.project}))
             result = {'status': 'mcp_http_verified', 'url': args.url, 'tools': tools, 'inspect': inspected}
