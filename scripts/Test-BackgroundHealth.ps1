@@ -19,8 +19,15 @@ foreach ($port in @($cfg.ssas_port)) {
 }
 # Protocol checks include a catalog read. They never save, refresh or publish.
 $python = Join-Path $Root 'services\powerbi-reportserver-mcp\.venv\Scripts\python.exe'
-$probe = & $python (Join-Path $Root 'scripts\probe_background.py') --root $Root 2>&1
-if ($LASTEXITCODE -ne 0) { $errors += 'Background MCP/catalog readiness check failed' }
+$savedPreference=$ErrorActionPreference
+try {
+    # Windows PowerShell 5 turns native stderr into ErrorRecords. Startup failures
+    # must be recorded and retried by the bounded health loop, not abort it.
+    $ErrorActionPreference='Continue'
+    $probe = & $python (Join-Path $Root 'scripts\probe_background.py') --root $Root 2>&1
+    $probeExit=$LASTEXITCODE
+} finally { $ErrorActionPreference=$savedPreference }
+if ($probeExit -ne 0) { $errors += 'Background MCP/catalog readiness check failed' }
 $failures = if ($errors.Count) { 1 + [int]$previous.consecutive_failures } else { 0 }
 $lastRecovery = if ($previous.last_recovery) { [double]$previous.last_recovery } else { 0 }
 $now = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()

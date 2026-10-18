@@ -30,4 +30,8 @@ async def probe(root):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--root', required=True, type=Path)
-    asyncio.run(probe(parser.parse_args().root))
+    try:
+        asyncio.run(probe(parser.parse_args().root))
+    except Exception:
+        print(json.dumps({'status': 'background_unavailable'}))
+        raise SystemExit(1)
