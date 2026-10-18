@@ -93,6 +93,15 @@ powershell.exe -NoProfile -File C:\PowerBI-MCP\Start-Headless.ps1 -Stop
 PID, временем создания и командной строкой. SSAS, Desktop и чужие процессы не останавливаются.
 `-Restart` перезапускает MCP; обычный запуск также обновляет конфигурацию и заменяет свой процесс.
 
+При `-WithPowerBIStack` Headless MCP запускает существующая задача планировщика
+вместе с четырьмя другими MCP и Caddy. Это позволяет завершить SSH-команду без
+завершения Headless-процесса. `-Status` показывает режим gateway-supervised и
+наличие слушателя; лог — `services/powerbi-reportserver-mcp/runtime/fedaraka-powerbi-headless.log`.
+`-Stop -WithPowerBIStack` останавливает весь стек. Задача по-прежнему зависит от
+интерактивного входа владельца установки; независимость от выхода пользователя
+не заявляется. Отдельный режим без `-WithPowerBIStack` использует detached-процесс
+и не предназначен для запуска из Windows OpenSSH с последующим отключением.
+
 ## 4. Поднять и существующие четыре MCP + Supergateway/Caddy
 
 Сначала заполните `deployment.local.json` по основной инструкции: реальный portal,

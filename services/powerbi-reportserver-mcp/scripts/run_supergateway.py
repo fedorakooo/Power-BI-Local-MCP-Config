@@ -47,6 +47,8 @@ try:
         start([node, str(entry), '--stdio', command, '--outputTransport', 'streamableHttp', '--stateful',
                '--sessionTimeout', '900000', '--port', str(server.get('port', 8013 + i)), '--healthEndpoint', '/healthz'], name, env)
     env = dict(os.environ)
+    if (root / 'runtime/headless-supervisor.json').is_file():
+        start([sys.executable, str(root / 'scripts/supervise_headless.py')], 'fedaraka-powerbi-headless', env)
     start([sys.executable, str(root / 'scripts/supervise_caddy.py')], 'caddy', env)
     (root / 'runtime/gateway-processes.json').write_text(json.dumps({'supervisor': os.getpid(), 'children': [p.pid for p in children]}))
     while all(p.poll() is None for p in children):

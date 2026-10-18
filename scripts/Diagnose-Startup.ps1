@@ -39,7 +39,7 @@ if (Test-Path -LiteralPath $pathsFile) {
     $nodePath = (Get-Content $pathsFile -Raw | ConvertFrom-Json).node
     Write-Host "Node executable present=$(Test-Path -LiteralPath $nodePath): $nodePath"
 }
-$files = @('supervisor.log','caddy.log','fedaraka-powerbi-modeling.log','fedaraka-powerbi-reportserver.log','fedaraka-powerbi-authoring.log','fedaraka-powerbi-desktop.log')
+$files = @('supervisor.log','caddy.log','fedaraka-powerbi-modeling.log','fedaraka-powerbi-reportserver.log','fedaraka-powerbi-authoring.log','fedaraka-powerbi-desktop.log','fedaraka-powerbi-headless.log')
 foreach ($name in $files) {
     $path = Join-Path $service ('runtime\' + $name)
     if (Test-Path -LiteralPath $path) {

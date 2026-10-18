@@ -47,7 +47,10 @@ function Stop-OwnedProcesses {
     if (Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue) { Stop-ScheduledTask -TaskName $taskName }
     Get-CimInstance Win32_Process | Where-Object {
         $_.Name -in @('python.exe','pythonw.exe','node.exe','caddy.exe') -and $_.CommandLine -and
-        $_.CommandLine.IndexOf($service,[StringComparison]::OrdinalIgnoreCase) -ge 0
+        ($_.CommandLine.IndexOf($service,[StringComparison]::OrdinalIgnoreCase) -ge 0 -or
+         ($_.ExecutablePath -eq (Join-Path $root 'runtime\headless\.venv\Scripts\python.exe') -and
+          $_.CommandLine.Contains((Join-Path $root 'headless\config.local.json')) -and
+          $_.CommandLine.Contains('pbirs_mcp.headless_build')))
     } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
 }
 if ($Stop) { Stop-OwnedProcesses; Write-Host "Stopped this deployment: $taskName. Desktop remains open."; return }

@@ -50,8 +50,19 @@ function StopOwned {
     if ($owned) { Stop-Process -Id $owned.ProcessId -ErrorAction Stop; Write-Host 'Stopped this installation headless MCP.' }
     if (Test-Path -LiteralPath $pidFile) { Remove-Item -LiteralPath $pidFile }
 }
-if ($Stop) { StopOwned; return }
+if ($Stop) {
+    if ($WithPowerBIStack) { & (Join-Path $root 'Start-PowerBI.ps1') -Stop; return }
+    StopOwned; return
+}
 if ($Status) {
+    $managedSettings = Join-Path $serviceRoot 'runtime\headless-supervisor.json'
+    if (Test-Path -LiteralPath $managedSettings) {
+        $managedPort = [int](Get-Content -LiteralPath $managedSettings -Raw | ConvertFrom-Json).port
+        [pscustomobject]@{mode='gateway-supervised';port=$managedPort;
+            listening=[bool](Get-NetTCPConnection -State Listen -LocalPort $managedPort -ErrorAction SilentlyContinue);
+            logs=(Join-Path $serviceRoot 'runtime\fedaraka-powerbi-headless.log')} | ConvertTo-Json
+        return
+    }
     $owned = OwnedProcess
     [pscustomobject]@{running=[bool]$owned;pid=$(if ($owned) {$owned.ProcessId} else {$null});config=$serviceConfig;logs=$runtime} | ConvertTo-Json
     return
@@ -167,6 +178,7 @@ try {
     Run $venv @((Join-Path $root 'scripts\configure_headless.py'),'--root',$root,'--settings',$Config,'--server',$server)
     Step 6 'Start local HTTP MCP and optional Power BI gateway stack'
     $port = [int]$settings.http_port
+    if (!$WithPowerBIStack) {
     if (Get-NetTCPConnection -State Listen -LocalPort $port -ErrorAction SilentlyContinue) { throw "Port $port is occupied by another process. Select a free http_port. No unrelated process was stopped." }
     $childId = & $venv (Join-Path $root 'scripts\start_headless_process.py') --root $root --port $port
     if ($LASTEXITCODE -ne 0) { throw 'Failed to detach headless MCP; inspect its logs.' }
@@ -184,8 +196,14 @@ try {
     }
     Write-Progress -Id 72 -Activity 'Wait for HTTP listener' -Completed
     if (!$ready) { throw 'MCP startup timed out; inspect runtime/headless/stderr.log.' }
+    }
     if ($WithPowerBIStack) {
-        $stackArgs = @{Config=$PowerBIConfig;NoDesktop=$true;HeadlessPort=$port}
+        # A detached child still belongs to the Windows OpenSSH job and dies on
+        # disconnect. Let the independent scheduled task own this process instead.
+        $supervisorSettings = Join-Path $serviceRoot 'runtime\headless-supervisor.json'
+        New-Item -ItemType Directory -Path (Split-Path -Parent $supervisorSettings) -Force | Out-Null
+        @{port=$port} | ConvertTo-Json | Set-Content -LiteralPath $supervisorSettings -Encoding UTF8
+        $stackArgs = @{Config=$PowerBIConfig;NoDesktop=$true;HeadlessPort=$port;Restart=$true}
         if ($Setup) { $stackArgs.Setup=$true }
         if ($Restart) { $stackArgs.Restart=$true }
         if ($AcceptMicrosoftEula) { $stackArgs.AcceptMicrosoftEula=$true }
