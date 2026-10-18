@@ -49,3 +49,32 @@ user-DPAPI protected in runtime/model-backup-credential.xml; it must be separate
 escrowed by the operator for disaster recovery. Backups stay on this server until an
 approved off-machine destination is supplied. Read runtime/last-model-backup.json.
 The watchdog never deletes publication journals or reviewed report backups.
+
+## Target validation — 2026-10-18
+
+- PBIMCPTEST was changed from Manual to Automatic startup and its existing port
+  62386 was pinned in msmdsrv.ini. That instance restarted successfully with the
+  same endpoint; existing report connection strings remained valid.
+- Background tasks ran with Password logon in Windows Session 0. Desktop's
+  separate task stayed in Session 1. Catalog access worked through the background
+  MCP using the existing protected user credential.
+- The scheduled encrypted model backup completed with exit code 0. An isolated
+  restore verified synthetic measures 0.4816 and 0.4916; the temporary database was
+  removed and the enrolled source database was not overwritten.
+- Fault injection terminated only the enrolled headless HTTP child. The background
+  group exited, while the Desktop listener kept the same PID. Two health cycles
+  were invoked through the SYSTEM scheduled task for this test; the watchdog
+  requested recovery and all background MCP protocol/catalog checks passed again.
+  This proves watchdog recovery, not a one-minute Task Scheduler restart guarantee.
+- STAIR run 1496 built/published the unchanged managed report through background
+  MCP. Independent catalog download matched build SHA256
+  91b811177c71ce5d8b1829fa04def06f8c8e5dabc66a598f0134b5648e421290;
+  the ZIP had one page, four visuals and no embedded DataModel. No new visual
+  rendering test was performed.
+- The operator will reboot the host themselves. Boot-trigger behavior has not yet
+  been accepted by an actual reboot test. SQL remains Developer, HTTP/IP-allowlist
+  transport is unchanged, backups remain local, and external alert delivery is not
+  configured. This deployment is not yet a fully accepted production release.
+
+Microsoft references: [fixed Analysis Services ports](https://learn.microsoft.com/en-us/analysis-services/instances/configure-the-windows-firewall-to-allow-analysis-services-access),
+[encrypted model backup/restore](https://learn.microsoft.com/en-us/analysis-services/multidimensional-models/backup-and-restore-of-analysis-services-databases).
