@@ -47,7 +47,7 @@ try:
         start([node, str(entry), '--stdio', command, '--outputTransport', 'streamableHttp', '--stateful',
                '--sessionTimeout', '900000', '--port', str(server.get('port', 8013 + i)), '--healthEndpoint', '/healthz'], name, env)
     env = dict(os.environ)
-    start([str(root / 'runtime/bin/caddy.exe'), 'run', '--config', str(root / 'gateway/Caddyfile'), '--adapter', 'caddyfile'], 'caddy', env)
+    start([sys.executable, str(root / 'scripts/supervise_caddy.py')], 'caddy', env)
     (root / 'runtime/gateway-processes.json').write_text(json.dumps({'supervisor': os.getpid(), 'children': [p.pid for p in children]}))
     while all(p.poll() is None for p in children):
         time.sleep(1)
@@ -60,8 +60,16 @@ except BaseException:
         traceback.print_exc(file=output)
     raise
 finally:
+    # EOF gives Supergateway and the Caddy guard a chance to stop their own children.
+    for child in children:
+        if child.stdin:
+            child.stdin.close()
     for child in children:
         if child.poll() is None:
-            child.terminate()
+            try:
+                child.wait(timeout=15)
+            except subprocess.TimeoutExpired:
+                child.terminate()
+                child.wait(timeout=5)
     for log in logs:
         log.close()

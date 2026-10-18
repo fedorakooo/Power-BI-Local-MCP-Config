@@ -80,3 +80,19 @@ Three regression tests cover IP-handle placement, preserving the existing deny r
 Host header rewriting, port changes, and rejecting unmanaged/unrestricted templates.
 The target Windows server still needs to pull and apply this version; these local tests
 do not establish reachability from STAIR or Report Server publication/rendering.
+
+### Integrated STAIR publication and lifecycle regression (2026-10-18)
+
+On the enrolled synthetic test installation, STAIR discovered the five MCP routes.
+Its agent backed up the test report, published the previously reviewed thin PBIX
+once with an operator-issued approval, then downloaded it again and verified its
+SHA256. An independent download also matched the approved artifact (66,841 bytes,
+valid ZIP, no embedded DataModel). No Desktop Save or recompilation was used for
+this publication. Rendering and Report Server's SSAS access remain unverified;
+upload verification is not a rendering test or a claim of customer readiness.
+
+An earlier outage left Caddy listening while every backend had stopped. The task
+reported STATUS_CONTROL_C_EXIT; the initiating cause was not established. The
+supervisor now uses pythonw and starts Caddy through a parent-pipe guard. A real
+Windows process regression closes the guard's parent pipe and verifies that both
+guard and child exit. This fix was tested locally; target rollout is separate.

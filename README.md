@@ -159,6 +159,15 @@ The supervisor records startup errors and child exit codes in `runtime/superviso
 under the service folder. Requesting a scheduled task start does not prove the gateway
 is listening; MCP readiness remains the success gate.
 
+Startup migrates this installation's exact legacy scheduled task action to
+`pythonw.exe`, avoiding a supervisor console window. A Caddy guard watches the
+supervisor's stdin pipe and stops the proxy if its parent disappears. Normal
+shutdown closes the child pipes before terminating unresponsive processes.
+Apply with `Start-Headless.ps1 -Restart -WithPowerBIStack` for the combined stack,
+or `Start-PowerBI.ps1 -Restart` for the Desktop stack alone. The task still uses
+the deployment user's interactive logon; this does not make it a Windows service.
+`0xC000013A` indicates interruption, without identifying its cause.
+
 If the supervisor reports `child_start_failed` for Caddy with WinError5, while Caddy
 runs in elevated PowerShell, update the repository. Older installers retained a protected
 temporary-directory DACL when moving caddy.exe; current Setup inherits the bin folder's

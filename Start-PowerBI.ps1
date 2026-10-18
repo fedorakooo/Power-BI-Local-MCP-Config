@@ -16,6 +16,7 @@ if ([string]::IsNullOrWhiteSpace($Config)) {
 }
 $service = Join-Path $root 'services\powerbi-reportserver-mcp'
 $venvPython = Join-Path $service '.venv\Scripts\python.exe'
+$supervisorPython = Join-Path $service '.venv\Scripts\pythonw.exe'
 $runtime = Join-Path $root 'runtime'
 $digest = [Security.Cryptography.SHA256]::Create()
 try { $suffix = ([BitConverter]::ToString($digest.ComputeHash([Text.Encoding]::UTF8.GetBytes($root.ToLowerInvariant())))).Replace('-','').Substring(0,8) }
@@ -45,7 +46,7 @@ function Invoke-Checked([string]$Executable, [string[]]$Arguments) {
 function Stop-OwnedProcesses {
     if (Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue) { Stop-ScheduledTask -TaskName $taskName }
     Get-CimInstance Win32_Process | Where-Object {
-        $_.Name -in @('python.exe','node.exe','caddy.exe') -and $_.CommandLine -and
+        $_.Name -in @('python.exe','pythonw.exe','node.exe','caddy.exe') -and $_.CommandLine -and
         $_.CommandLine.IndexOf($service,[StringComparison]::OrdinalIgnoreCase) -ge 0
     } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
 }
@@ -198,7 +199,8 @@ if ($Setup) {
     Start-DeploymentStage 'Register startup task and firewall rules'
     Set-DeploymentDetail 0 4 'Register the interactive startup task'
     $pythonScript = Join-Path $service 'scripts\run_supergateway.py'
-    $action = New-ScheduledTaskAction -Execute $venvPython -Argument ('"' + $pythonScript + '"') -WorkingDirectory $service
+    if (!(Test-Path -LiteralPath $supervisorPython)) { throw 'Missing pythonw.exe in the Windows virtual environment.' }
+    $action = New-ScheduledTaskAction -Execute $supervisorPython -Argument ('"' + $pythonScript + '"') -WorkingDirectory $service
     $trigger = New-ScheduledTaskTrigger -AtLogOn -User $identity
     $taskPrincipal = New-ScheduledTaskPrincipal -UserId $identity -LogonType Interactive -RunLevel Limited
     $taskSettings = New-ScheduledTaskSettingsSet -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1) -ExecutionTimeLimit ([TimeSpan]::Zero) -MultipleInstances IgnoreNew
@@ -241,7 +243,20 @@ if ($HeadlessPort) {
 Start-DeploymentStage 'Start HTTP gateways'
 Set-DeploymentDetail 0 1 'Check the frontend port and start or reuse the scheduled gateway task'
 $task = Get-ScheduledTask -TaskName $taskName -ErrorAction Stop
-if ($Restart -or $headlessChanged -or $task.State -ne 'Running') {
+$taskActionChanged = $false
+# Migrate only the exact legacy action belonging to this installation.
+if (@($task.Actions).Count -eq 1 -and $task.Actions[0].Execute -eq $venvPython) {
+    $pythonScript = Join-Path $service 'scripts\run_supergateway.py'
+    if ($task.Actions[0].Arguments -ne ('"' + $pythonScript + '"') -or $task.Actions[0].WorkingDirectory -ne $service) {
+        throw 'Unexpected scheduled task action; inspect Diagnose before changing it.'
+    }
+    if (!(Test-Path -LiteralPath $supervisorPython)) { throw 'Missing pythonw.exe in the Windows virtual environment.' }
+    $action = New-ScheduledTaskAction -Execute $supervisorPython -Argument ('"' + $pythonScript + '"') -WorkingDirectory $service
+    Set-ScheduledTask -TaskName $taskName -Action $action -ErrorAction Stop | Out-Null
+    $taskActionChanged = $true
+    Write-Host 'Migrated this installation supervisor to pythonw.exe (no console window).'
+}
+if ($Restart -or $headlessChanged -or $taskActionChanged -or $task.State -ne 'Running') {
     Set-DeploymentDetail 0 3 'Stop the scheduled task and remaining processes from this deployment'
     Stop-OwnedProcesses
     Set-DeploymentDetail 1 3 'Stop listener processes on all five configured MCP ports'

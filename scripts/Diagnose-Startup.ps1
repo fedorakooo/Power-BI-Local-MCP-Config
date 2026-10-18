@@ -10,7 +10,8 @@ if ($TaskName) {
     $task = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
     $info = Get-ScheduledTaskInfo -TaskName $TaskName -ErrorAction SilentlyContinue
     if ($task) {
-        [pscustomobject]@{Task=$TaskName; State=$task.State.ToString(); LastResult=('0x{0:X8}' -f $info.LastTaskResult); LastRun=$info.LastRunTime; RunAs=$task.Principal.UserId} | Format-List | Out-Host
+        [pscustomobject]@{Task=$TaskName; State=$task.State.ToString(); LastResult=('0x{0:X8}' -f $info.LastTaskResult); LastRun=$info.LastRunTime; RunAs=$task.Principal.UserId;Executable=($task.Actions.Execute -join ',')} | Format-List | Out-Host
+        if ($info.LastTaskResult -eq 3221225786) { Write-Host 'Supervisor was interrupted (STATUS_CONTROL_C_EXIT). This result alone does not identify who or what interrupted it.' }
     } else { Write-Host "Task not found: $TaskName" }
 }
 $settingsPath = Join-Path $Root 'deployment.local.json'
@@ -20,13 +21,15 @@ if (Test-Path -LiteralPath (Join-Path $Root 'runtime\installation.json')) {
 if (Test-Path -LiteralPath $settingsPath) {
     $settings = Get-Content $settingsPath -Raw | ConvertFrom-Json
     $ports = @(0..4 | ForEach-Object { [int]$settings.frontend_port + $_ })
+    $headlessSettings = Join-Path $Root 'headless.deployment.local.json'
+    if (Test-Path -LiteralPath $headlessSettings) { $ports += [int](Get-Content -LiteralPath $headlessSettings -Raw | ConvertFrom-Json).http_port }
     foreach ($port in $ports) {
         $listeners = @(Get-NetTCPConnection -State Listen -LocalPort $port -ErrorAction SilentlyContinue)
         if (!$listeners.Count) { Write-Host "Port ${port}: NOT LISTENING" }
         foreach ($listener in $listeners) { Write-Host "Port ${port}: listening on $($listener.LocalAddress), PID=$($listener.OwningProcess)" }
     }
 }
-$required = @('.venv\Scripts\python.exe','gateway\node_modules\supergateway\dist\index.js','runtime\bin\caddy.exe','gateway\Caddyfile','gateway\servers.local.json')
+$required = @('.venv\Scripts\python.exe','.venv\Scripts\pythonw.exe','scripts\supervise_caddy.py','gateway\node_modules\supergateway\dist\index.js','runtime\bin\caddy.exe','gateway\Caddyfile','gateway\servers.local.json')
 foreach ($relative in $required) {
     $path = Join-Path $service $relative
     Write-Host "File present=$(Test-Path -LiteralPath $path): $relative"
