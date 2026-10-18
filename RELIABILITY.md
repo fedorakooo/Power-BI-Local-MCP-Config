@@ -42,3 +42,10 @@ backups, and a real host-reboot acceptance test. IP allowlisting is retained; th
 setup does not claim that HTTP without user authentication is suitable for every
 production environment. No new data source or refresh schedule is introduced for
 the synthetic DATATABLE model, whose data is already embedded in SSAS.
+
+Daily encrypted SSAS backups and report-source snapshots are registered at 02:00
+server local time, with 14-day retention. The backup encryption credential is
+user-DPAPI protected in runtime/model-backup-credential.xml; it must be separately
+escrowed by the operator for disaster recovery. Backups stay on this server until an
+approved off-machine destination is supplied. Read runtime/last-model-backup.json.
+The watchdog never deletes publication journals or reviewed report backups.
