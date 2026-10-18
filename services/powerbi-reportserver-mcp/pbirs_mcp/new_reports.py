@@ -29,7 +29,7 @@ def ensure_absent(service, actor, path):
         raise PermissionError('Destination already exists; new-report publishing never overwrites')
 
 
-def publish(service, actor, alias, file_name, approval_id):
+def publish(service, actor, alias, file_name, approval_id=None, expected_sha256=None):
     folder, name, target_path = destination(service, actor, alias)
     if not service.config.get('write_enabled'):
         raise PermissionError('Writes are disabled by the operator')
@@ -50,13 +50,22 @@ def publish(service, actor, alias, file_name, approval_id):
                 if archive.testzip() or 'Report/Layout' not in archive.namelist():
                     raise ValueError('Valid Power BI report ZIP required')
             digest = sha256(prepared)
-            approval_path, approval = service._approved(actor, alias, approval_id, 'create', digest)
-            if approval.get('target_path') != target_path:
-                raise PermissionError('Approval does not match the enrolled destination path')
+            automatic = service.automatic_allowed(actor, alias, 'create') and not approval_id
+            operation = None
+            if automatic:
+                if expected_sha256 != digest:
+                    raise PermissionError('Automatic creation requires the exact reviewed artifact SHA256')
+            else:
+                approval_path, approval = service._approved(actor, alias, approval_id, 'create', digest)
+                if approval.get('target_path') != target_path:
+                    raise PermissionError('Approval does not match the enrolled destination path')
             ensure_absent(service, actor, target_path)
-            if approval['expires_at'] <= time.time():
-                raise PermissionError('Approval expired before creation')
-            approval_path.rename(service.root / 'consumed' / approval_path.name)
+            if automatic:
+                operation = service._automatic_begin(actor, alias, 'create', digest)
+            else:
+                if approval['expires_at'] <= time.time():
+                    raise PermissionError('Approval expired before creation')
+                approval_path.rename(service.root / 'consumed' / approval_path.name)
             try:
                 item = service._call(actor, 'create', folder=folder, name=name, source=str(prepared))['report']
                 report_id = str(uuid.UUID(item['Id']))
@@ -70,11 +79,18 @@ def publish(service, actor, alias, file_name, approval_id):
                 verified = prepared_dir / 'downloaded.pbix'
                 service._call(actor, 'download', report_id=report_id, destination=str(verified))
                 matches = sha256(verified) == digest
-                return {'status': 'verified' if matches else 'verification_mismatch', 'sha256': digest,
+                result = {'status': 'verified' if matches else 'verification_mismatch', 'sha256': digest,
                     'report_id': report_id, 'created': True, 'render_verified': False,
+                    'publication_mode': 'automatic' if automatic else 'operator_approval',
                     **service.get_report_link(actor, alias)}
+                if operation:
+                    service._automatic_finish(operation, result['status'], result)
+                return result
             except Exception:
-                raise RuntimeError('New report creation/verification outcome may be uncertain; approval consumed. '
+                if operation:
+                    service._automatic_finish(operation, 'uncertain')
+                gate = 'automatic retries blocked. ' if automatic else 'approval consumed. '
+                raise RuntimeError('New report creation/verification outcome may be uncertain; ' + gate +
                     'Inspect the enrolled catalog path before any retry: ' + target_path) from None
         finally:
             shutil.rmtree(prepared_dir)

@@ -1,5 +1,34 @@
 # Создание динамических отчётов через MCP
 
+## Автоматическая публикация без approval_id
+
+Оператор может один раз включить автоматический режим для конкретного агента и
+зарегистрированных aliases. Тогда запрос в чате достаточен для публикации;
+ручная команда approve-create/approve и передача ID больше не требуются.
+Режим по умолчанию для остальных агентов и отчётов остаётся с approval.
+
+```powershell
+Set-Location C:\PowerBI-MCP\services\powerbi-reportserver-mcp
+.\.venv\Scripts\python.exe -m pbirs_mcp.admin --config config.local.json publication-policy --actor fedaraka --mode automatic --report staging --report sales-new --action publish --action create
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\PowerBI-MCP\Start-Headless.ps1 -Restart -WithPowerBIStack
+```
+
+Агент сначала вызывает `get_publication_policy`. В automatic-режиме он передаёт
+`expected_sha256` из результата сборки. При обновлении также нужен
+`expected_current_sha256` из свежего `download_report_backup`; его агент получает
+сам. Новое создание по-прежнему не перезаписывает существующий каталог.
+
+Каждая автоматическая запись получает серверный журнал в
+`runtime/automatic-operations/`. Состояния pending/uncertain/verification_mismatch
+блокируют следующие автоматические записи этого alias, включая после рестарта.
+Оператор должен проверить реальный каталог/хэши, затем архивировать разрешённую
+запись журнала после устранения причины. Агент не удаляет журнал и не сбрасывает
+блокировку. Восстановление из backup сохраняет прежний approval-порядок.
+Политика переживает повторный Setup для того же Report Server.
+
+Вернуть ручной режим можно CLI `publication-policy --actor fedaraka --mode approval
+--report staging --report sales-new`, затем перезапустить MCP.
+
 Headless MCP умеет создавать новый thin-report на зарегистрированной модели SSAS,
 редактировать его страницы и визуалы, затем компилировать новый PBIX без Desktop Save.
 Модель данных уже должна существовать. Это не импорт произвольного источника данных
@@ -32,7 +61,8 @@ Headless MCP умеет создавать новый thin-report на заре�
 ## Публикация нового отчёта
 
 Report Server MCP дополнен `publish_new_reviewed_pbix`. Инструмент работает только
-с заранее зарегистрированным адресом назначения и одноразовым operator approval.
+с заранее зарегистрированным адресом назначения. В стандартном режиме нужен
+одноразовый operator approval; в автоматическом режиме выше он не нужен.
 Существующий каталог никогда не перезаписывается: конфликт означает остановку.
 После создания инструмент скачивает PBIX и сравнивает SHA256; отображение визуалов
 проверяется отдельно. При неопределённом результате approval потребляется, повтор

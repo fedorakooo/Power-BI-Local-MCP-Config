@@ -83,18 +83,30 @@ def build_mcp(service):
         return service.download_report_backup(actor_var.get(), report)
 
     @mcp.tool(annotations={'readOnlyHint': False, 'destructiveHint': True, 'idempotentHint': False})
-    def publish_reviewed_pbix(report: str, file_name: str, approval_id: str) -> dict:
-        """Publish a PBIX from release_root. Requires operator-issued one-use approval binding actor,
-        report, file SHA256, expected current report SHA256 and expiry. Automatically back up first.
+    def publish_reviewed_pbix(report: str, file_name: str, approval_id: str | None = None,
+                              expected_sha256: str | None = None, expected_current_sha256: str | None = None) -> dict:
+        """Publish a PBIX from release_root. First get_publication_policy. In automatic mode omit approval_id
+        and supply exact built expected_sha256 plus fresh backup expected_current_sha256; no human CLI needed.
+        Other targets require an operator-issued one-use approval. Automatically back up before updating.
         Never retry a failed or uncertain publication; inspect the report and obtain a new approval.
         This tool neither edits Desktop visuals nor saves an open Desktop file.
         """
-        return service.publish_reviewed_pbix(actor_var.get(), report, file_name, approval_id)
+        return service.publish_reviewed_pbix(actor_var.get(), report, file_name, approval_id, expected_sha256, expected_current_sha256)
 
     @mcp.tool(annotations={'readOnlyHint': False, 'destructiveHint': False, 'idempotentHint': False})
-    def publish_new_reviewed_pbix(destination: str, file_name: str, approval_id: str) -> dict:
-        """Create a NEW catalog report at an operator-enrolled destination alias. Requires a one-use operator create approval bound to artifact SHA256 and exact catalog path. Never overwrites an existing item. Verify returned download hash; rendering is separate. Never automatically retry an error or uncertain outcome."""
-        return service.publish_new_reviewed_pbix(actor_var.get(), destination, file_name, approval_id)
+    def publish_new_reviewed_pbix(destination: str, file_name: str, approval_id: str | None = None, expected_sha256: str | None = None) -> dict:
+        """Create a NEW catalog report at an enrolled destination. Check get_publication_policy first.
+        In automatic mode omit approval_id and supply exact built expected_sha256; no human CLI needed.
+        Otherwise requires an operator create approval. Never overwrites an existing item. Verify download
+        hash; rendering is separate. Uncertain automatic writes block further automatic publication until inspected."""
+        return service.publish_new_reviewed_pbix(actor_var.get(), destination, file_name, approval_id, expected_sha256)
+
+    @mcp.tool(annotations={'readOnlyHint': True})
+    def get_publication_policy(report: str) -> dict:
+        """Read this actor's publication mode for an enrolled report/destination: automatic or operator_approval.
+        Automatic create/update needs exact artifact hash; update also needs the fresh server backup hash.
+        This tool reads policy and cannot change it."""
+        return service.get_publication_policy(actor_var.get(), report)
 
     @mcp.tool(annotations={'readOnlyHint': False, 'destructiveHint': True, 'idempotentHint': False})
     def restore_previous_pbix(report: str, backup_id: str, approval_id: str) -> dict:

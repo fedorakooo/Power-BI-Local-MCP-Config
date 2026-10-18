@@ -113,6 +113,13 @@ def configure(root, settings_path, node, validate_only=False, progress=False):
                     client['create_reports'] = enrolled
                     client['scopes'].append('create')
                     client['reports'] += [alias for alias in enrolled if alias not in client['reports']]
+        if previous.get('portal', '').rstrip('/') == config['portal'].rstrip('/'):
+            for actor, client in actors.items():
+                policy = previous.get('clients', {}).get(actor, {}).get('automatic_publication', {})
+                if policy:
+                    client['automatic_publication'] = {
+                        'reports': [alias for alias in policy.get('reports', []) if alias in client['reports']],
+                        'actions': [action for action in policy.get('actions', []) if action in ('publish', 'create')]}
     config_path.write_text(json.dumps(config, indent=2), encoding='utf-8')
     (runtime/'gateway-paths.json').write_text(json.dumps({'node': str(Path(node).resolve())}))
     emit(6, 'Locate Modeling MCP and generate four gateway commands')

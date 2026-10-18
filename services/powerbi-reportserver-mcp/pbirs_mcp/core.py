@@ -69,7 +69,7 @@ class Service:
         self.backend = backend or PowerShellBackend(portal, config.get('credential_path'))
         self.root = Path(config['data_root']).resolve()
         self.release = Path(config['release_root']).resolve()
-        for folder in ('backups', 'approvals', 'consumed', 'staging', 'locks', 'catalog-enrollments'):
+        for folder in ('backups', 'approvals', 'consumed', 'staging', 'locks', 'catalog-enrollments', 'automatic-operations'):
             (self.root / folder).mkdir(parents=True, exist_ok=True)
         self.release.mkdir(parents=True, exist_ok=True)
         for alias, report_id in config.get('reports', {}).items():
@@ -151,6 +151,8 @@ class Service:
             return self._backup(actor, report)
 
     def _approved(self, actor, report, approval_id, action, digest):
+        if not approval_id:
+            raise PermissionError('Valid operator approval required')
         path = self.root / 'approvals' / (identifier(approval_id) + '.json')
         try:
             approval = json.loads(path.read_text(encoding='utf-8'))
@@ -161,7 +163,46 @@ class Service:
             raise PermissionError('Approval does not match actor, report, action, hash or expiry')
         return path, approval
 
-    def _publish(self, actor, report, source, approval_id, action):
+    def automatic_allowed(self, actor, report, action):
+        policy = self.config.get('clients', {}).get(actor, {}).get('automatic_publication', {})
+        return report in policy.get('reports', []) and action in policy.get('actions', [])
+
+    def get_publication_policy(self, actor, report):
+        client = self.authorize(actor, None, 'read')
+        if report not in client.get('reports', []):
+            raise PermissionError('Report not permitted')
+        if report not in self.report_ids() and report not in self.config.get('new_report_destinations', {}):
+            raise PermissionError('Report or destination is not enrolled')
+        modes = {action: 'automatic' if self.automatic_allowed(actor, report, action) else 'operator_approval'
+                 for action in ('publish', 'create', 'restore')}
+        return dict(report=report, **modes, expected_artifact_sha256_required=True,
+                    automatic_update_requires_current_sha256=True, uncertain_writes_block_automatic_retry=True)
+
+    def _automatic_begin(self, actor, report, action, digest, expected_current=None):
+        directory = self.root / 'automatic-operations'
+        for old in directory.glob('*.json'):
+            data = json.loads(old.read_text(encoding='utf-8'))
+            if data.get('report') == report and data.get('status') != 'verified':
+                raise PermissionError('Automatic publication blocked by unresolved operation ' + old.stem + '; inspect server state')
+        key = hashlib.sha256(json.dumps([actor, report, action, digest, expected_current]).encode()).hexdigest()
+        path = directory / (key + '.json')
+        record = dict(actor=actor, report=report, action=action, sha256=digest,
+                      expected_current_sha256=expected_current, status='pending', started_at=time.time())
+        try:
+            with path.open('x', encoding='utf-8') as output:
+                json.dump(record, output)
+        except FileExistsError:
+            raise PermissionError('This exact automatic publication was already attempted; inspect server state') from None
+        return path
+
+    def _automatic_finish(self, path, status, result=None):
+        record = json.loads(path.read_text(encoding='utf-8'))
+        record.update(status=status, finished_at=time.time(), result=result)
+        temporary = path.with_suffix('.tmp')
+        temporary.write_text(json.dumps(record), encoding='utf-8')
+        os.replace(temporary, path)
+
+    def _publish(self, actor, report, source, approval_id, action, expected_sha256=None, expected_current_sha256=None):
         self.authorize(actor, report, 'publish')
         self.authorize(actor, report, 'read')
         if not self.config.get('write_enabled', False):
@@ -183,14 +224,27 @@ class Service:
                 if not zipfile.is_zipfile(prepared):
                     raise ValueError('PBIX must be a ZIP-based Power BI file')
                 digest = sha256(prepared)
-                approval_path, approval = self._approved(actor, report, approval_id, action, digest)
+                automatic = self.automatic_allowed(actor, report, action) and not approval_id
+                operation = None
+                if automatic:
+                    if expected_sha256 != digest:
+                        raise PermissionError('Automatic publication requires the exact reviewed artifact SHA256')
+                    if not isinstance(expected_current_sha256, str) or not re.fullmatch('[0-9a-f]{64}', expected_current_sha256):
+                        raise PermissionError('Automatic update requires a fresh current server SHA256')
+                    expected_current = expected_current_sha256
+                else:
+                    approval_path, approval = self._approved(actor, report, approval_id, action, digest)
+                    expected_current = approval.get('expected_current_sha256')
                 backup = self._backup(actor, report)
-                if backup['sha256'] != approval.get('expected_current_sha256'):
-                    raise PermissionError('Report changed since review; obtain a fresh approval')
-                if approval['expires_at'] <= time.time():
-                    raise PermissionError('Approval expired while preparing the backup')
-                # One attempt per approval, including uncertain upload outcomes. Never blindly retry writes.
-                approval_path.rename(self.root / 'consumed' / approval_path.name)
+                if backup['sha256'] != expected_current:
+                    raise PermissionError('Report changed since review; inspect the current server version')
+                if automatic:
+                    operation = self._automatic_begin(actor, report, action, digest, expected_current)
+                else:
+                    if approval['expires_at'] <= time.time():
+                        raise PermissionError('Approval expired while preparing the backup')
+                    # One attempt per approval, including uncertain upload outcomes.
+                    approval_path.rename(self.root / 'consumed' / approval_path.name)
                 log.info('pbirs_publish_started', extra={'stair.actor': actor, 'stair.report': report,
                          'stair.approval.id': approval_id, 'stair.backup.id': backup['backup_id']})
                 try:
@@ -199,30 +253,36 @@ class Service:
                     self._call(actor, 'download', report_id=self.report_ids()[report], destination=str(verified))
                     matches = sha256(verified) == digest
                 except Exception as error:
+                    if operation:
+                        self._automatic_finish(operation, 'uncertain', {'backup_id': backup['backup_id']})
                     log.error('pbirs_publish_outcome_uncertain', extra={'stair.actor': actor, 'stair.report': report,
                               'stair.backup.id': backup['backup_id']})
                     diagnostic = str(error) if re.fullmatch(r'PBIRS failure: [A-Za-z0-9_. =-]+', str(error)) else 'See local diagnostics'
-                    raise RuntimeError('Upload/verification failed. Outcome may be uncertain; approval consumed. '
+                    gate = 'automatic retries blocked. ' if automatic else 'approval consumed. '
+                    raise RuntimeError('Upload/verification failed. Outcome may be uncertain; ' + gate +
                                        'Inspect report before retry; backup_id=' + backup['backup_id'] + '; ' + diagnostic) from None
                 result = dict(status='verified' if matches else 'verification_mismatch', sha256=digest,
-                              backup_id=backup['backup_id'], **self.get_report_link(actor, report))
+                              backup_id=backup['backup_id'], publication_mode='automatic' if automatic else 'operator_approval',
+                              **self.get_report_link(actor, report))
+                if operation:
+                    self._automatic_finish(operation, result['status'], result)
                 log.info('pbirs_publish_finished', extra={'stair.actor': actor, 'stair.report': report,
                          'stair.publish.status': result['status']})
                 return result
             finally:
                 shutil.rmtree(staging)
 
-    def publish_reviewed_pbix(self, actor, report, file_name, approval_id):
+    def publish_reviewed_pbix(self, actor, report, file_name, approval_id=None, expected_sha256=None, expected_current_sha256=None):
         if Path(file_name).name != file_name or '/' in file_name or '\\' in file_name:
             raise ValueError('Use a filename within release_root')
         source = (self.release / file_name).resolve()
         if not source.is_relative_to(self.release):
             raise ValueError('File must remain inside release_root')
-        return self._publish(actor, report, source, approval_id, 'publish')
+        return self._publish(actor, report, source, approval_id, 'publish', expected_sha256, expected_current_sha256)
 
-    def publish_new_reviewed_pbix(self, actor, destination, file_name, approval_id):
+    def publish_new_reviewed_pbix(self, actor, destination, file_name, approval_id=None, expected_sha256=None):
         from .new_reports import publish
-        return publish(self, actor, destination, file_name, approval_id)
+        return publish(self, actor, destination, file_name, approval_id, expected_sha256)
 
     def restore_previous_pbix(self, actor, report, backup_id, approval_id):
         self.authorize(actor, report, 'publish')

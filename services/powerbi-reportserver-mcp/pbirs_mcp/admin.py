@@ -36,6 +36,11 @@ def main():
     approve_create.add_argument('--report', required=True)
     approve_create.add_argument('--file', required=True)
     approve_create.add_argument('--expected-sha256')
+    policy = sub.add_parser('publication-policy')
+    policy.add_argument('--actor', required=True)
+    policy.add_argument('--mode', choices=['automatic', 'approval'], required=True)
+    policy.add_argument('--report', action='append', required=True)
+    policy.add_argument('--action', action='append', choices=['publish', 'create'], default=[])
     args = parser.parse_args()
     path = Path(args.config).resolve()
     if args.command == 'init':
@@ -57,6 +62,28 @@ def main():
     service = Service(config)
     if args.command == 'discover':
         print(json.dumps(service.backend.call('list'), ensure_ascii=False, indent=2))
+    elif args.command == 'publication-policy':
+        client = config.get('clients', {}).get(args.actor)
+        if not client:
+            raise SystemExit('Actor is not enrolled')
+        aliases = sorted(set(identifier(alias) for alias in args.report))
+        known = set(config.get('reports', {})) | set(config.get('new_report_destinations', {}))
+        if not set(aliases) <= known or not set(aliases) <= set(client.get('reports', [])):
+            raise SystemExit('Policy can include only this actor\'s existing report/destination enrollments')
+        if args.mode == 'automatic':
+            actions = sorted(set(args.action or ['publish', 'create']))
+            for action in actions:
+                if action not in client.get('scopes', []):
+                    raise SystemExit('Required actor scope is missing: ' + action)
+            client['automatic_publication'] = dict(reports=aliases, actions=actions)
+        else:
+            previous = client.get('automatic_publication', {})
+            previous['reports'] = [alias for alias in previous.get('reports', []) if alias not in aliases]
+            client['automatic_publication'] = previous
+        pending = path.with_suffix('.policy.tmp')
+        pending.write_text(json.dumps(config, indent=2), encoding='utf-8')
+        pending.replace(path)
+        print(json.dumps({'actor': args.actor, 'reports': aliases, 'mode': args.mode, 'restart_required': True}))
     elif args.command == 'enroll-new':
         from .new_reports import destination
         alias = identifier(args.alias)

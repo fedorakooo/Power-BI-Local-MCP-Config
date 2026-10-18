@@ -96,6 +96,23 @@ class NewReportPublicationTests(unittest.TestCase):
             self.publish()
         self.assertEqual(self.backend.creates,0)
 
+    def test_automatic_creation_needs_hash_but_no_approval(self):
+        self.service.config['clients']['author']['automatic_publication']={'reports':['new-sales'],'actions':['create']}
+        self.approval.unlink()
+        result=self.service.publish_new_reviewed_pbix('author','new-sales','new.pbix',expected_sha256=sha256(self.artifact))
+        self.assertEqual(result['publication_mode'],'automatic')
+        self.assertEqual(result['status'],'verified')
+        self.assertEqual(self.backend.creates,1)
+        with self.assertRaisesRegex(PermissionError,'never overwrites'):
+            self.service.publish_new_reviewed_pbix('author','new-sales','new.pbix',expected_sha256=sha256(self.artifact))
+        self.assertEqual(self.backend.creates,1)
+
+    def test_automatic_creation_rejects_unreviewed_hash(self):
+        self.service.config['clients']['author']['automatic_publication']={'reports':['new-sales'],'actions':['create']}
+        with self.assertRaisesRegex(PermissionError,'exact reviewed artifact SHA256'):
+            self.service.publish_new_reviewed_pbix('author','new-sales','new.pbix',expected_sha256='0'*64)
+        self.assertEqual(self.backend.creates,0)
+
 
 if __name__=='__main__':
     unittest.main()
