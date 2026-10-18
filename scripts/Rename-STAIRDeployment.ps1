@@ -98,6 +98,9 @@ if ($LASTEXITCODE -ne 0) { throw 'Caddy validation failed; restore saved configu
 foreach($task in $tasks) {
     $newName=Rebrand $task.name
     $xml=Rebrand $task.xml
+    [xml]$definition=$xml
+    $definition.Task.Settings.Enabled='true'
+    $xml=$definition.OuterXml
     # The legacy tasks were disabled after export; the copied definitions stay enabled.
     if ($task.logon -eq 'Password') {
         Register-ScheduledTask -TaskName $newName -Xml $xml -User $identity -Password $Credential.GetNetworkCredential().Password -Force | Out-Null
