@@ -10,7 +10,7 @@ import subprocess
 import uuid
 import zipfile
 from pathlib import Path
-from .dynamic_reports import DynamicReports, ReportPage
+from .dynamic_reports import DynamicReports, ReportPage, editable_pages
 
 from mcp.server.fastmcp import FastMCP
 
@@ -77,6 +77,7 @@ class ThinReportBuilder:
         root = self.project(alias)
         layout = json.loads((root / 'Report/report.json').read_text(encoding='utf-8-sig'))
         return {'project': alias, 'revision': revision(root), 'backend': 'pbi-tools-thin-pbix',
+            'editable_pages': editable_pages(layout) if (root / '.mcp-created-report.json').is_file() else None,
             'pages': [p['displayName'] for p in layout.get('sections', [])],
             'page_details': [{'title': p['displayName'], 'visuals': [
                 {'type': (c := json.loads(v.get('config', '{}'))).get('singleVisual', {}).get('visualType'),

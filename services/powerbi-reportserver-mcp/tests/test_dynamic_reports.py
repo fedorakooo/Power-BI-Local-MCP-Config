@@ -45,6 +45,34 @@ class CreationScopeTests(unittest.TestCase):
             self.creator.create('sales-new', 'lab', 'Replacement', self.pages)
         self.assertEqual(before, self.builder.inspect('sales-new')['revision'])
 
+    def test_inspection_round_trips_all_supported_specs_and_escaped_titles(self):
+        self.pages[0].visuals[0].title = "Owner's Rate"
+        for kind, y in [('slicer', 250), ('columnChart', 400)]:
+            spec = {'type': kind, 'title': kind, 'category': {'table': 'Sales', 'name': 'Manager'},
+                    'x': 20, 'y': y, 'width': 300, 'height': 100}
+            if kind == 'columnChart':
+                spec['measure'] = {'table': 'Sales', 'name': 'Win Rate %'}
+            self.pages[0].visuals.append(type(self.pages[0].visuals[0]).model_validate(spec))
+        self.creator.create('sales-new', 'lab', 'Sales', self.pages)
+        self.assertEqual(self.builder.inspect('sales-new')['editable_pages'],
+                         [page.model_dump(exclude_none=True) for page in self.pages])
+
+    def test_add_page_from_inspection_preserves_first_page_visual_layout(self):
+        self.creator.create('sales-new', 'lab', 'Sales', self.pages)
+        source = self.builder.project('sales-new') / 'Report/report.json'
+        before = json.loads(source.read_text())['sections'][0]
+        inspected = self.builder.inspect('sales-new')
+        pages = [ReportPage.model_validate(p) for p in inspected['editable_pages']]
+        extra = pages[0].model_copy(deep=True)
+        extra.title = 'Second page'
+        self.creator.update('sales-new', inspected['revision'], pages + [extra])
+        after = json.loads(source.read_text())['sections'][0]
+        self.assertEqual(before['displayName'], after['displayName'])
+        for old, new in zip(before['visualContainers'], after['visualContainers']):
+            self.assertEqual({k: old[k] for k in ('x', 'y', 'width', 'height')},
+                             {k: new[k] for k in ('x', 'y', 'width', 'height')})
+            self.assertEqual(json.loads(old['config'])['singleVisual'], json.loads(new['config'])['singleVisual'])
+
     def test_undeclared_fields_are_rejected_before_writing(self):
         self.pages[0].visuals[0].measure.name = 'OtherCustomerSecret'
         with self.assertRaisesRegex(ValueError, 'operator-enrolled'):

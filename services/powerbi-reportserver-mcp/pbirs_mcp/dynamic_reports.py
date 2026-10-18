@@ -49,6 +49,33 @@ class ReportPage(BaseModel):
     visuals: list[ReportVisual] = Field(min_length=1, max_length=20)
 
 
+def editable_pages(layout):
+    """Recover complete supported visual specs so untouched pages can be retained."""
+    pages = []
+    for page in layout['sections']:
+        visuals = []
+        for container in page['visualContainers']:
+            visual = json.loads(container['config'])['singleVisual']
+            title = visual['vcObjects']['title'][0]['properties']['text']['expr']['Literal']['Value']
+            if not (title.startswith("'") and title.endswith("'")):
+                raise ValueError('Visual title is not a supported literal')
+            spec = {'type': visual['visualType'], 'title': title[1:-1].replace("''", "'"),
+                    **{key: container[key] for key in ('x', 'y', 'width', 'height')}}
+            query = visual['prototypeQuery']
+            tables = {item['Name']: item['Entity'] for item in query['From']}
+            for field in query['Select']:
+                for kind, target in (('Column', 'category'), ('Measure', 'measure')):
+                    if kind in field:
+                        if target in spec:
+                            raise ValueError('Multiple bindings cannot be round-tripped by this profile')
+                        binding = field[kind]
+                        spec[target] = {'table': tables[binding['Expression']['SourceRef']['Source']],
+                                        'name': binding['Property']}
+            visuals.append(ReportVisual.model_validate(spec))
+        pages.append(ReportPage(title=page['displayName'], visuals=visuals).model_dump(exclude_none=True))
+    return pages
+
+
 def literal(value):
     return {'expr': {'Literal': {'Value': value}}}
 
