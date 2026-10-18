@@ -6,6 +6,9 @@ import sys
 import time
 import traceback
 import argparse
+import logging
+import logging.handlers
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -14,6 +17,7 @@ root = Path(__file__).resolve().parents[1]
 entry = root / 'gateway/node_modules/supergateway/dist/index.js'
 children = []
 logs = []
+readers = []
 names = {}
 parser = argparse.ArgumentParser()
 parser.add_argument('--mode', choices=['combined', 'background', 'desktop'], default='combined')
@@ -25,11 +29,13 @@ def record(event, **details):
         output.write(json.dumps(dict(time=datetime.now(timezone.utc).isoformat(), event=event, **details)) + '\n')
 
 def start(args, name, env=None):
-    log = (root / 'runtime' / (name + '.log')).open('ab', buffering=0)
+    log = logging.handlers.RotatingFileHandler(root/'runtime'/(name+'.log'),
+        maxBytes=10*1024*1024, backupCount=5, encoding='utf-8')
+    log.setFormatter(logging.Formatter('%(message)s'))
     logs.append(log)
     record('child_starting', name=name, executable=str(args[0]))
     try:
-        child = subprocess.Popen(args, cwd=root, env=env, stdin=subprocess.PIPE, stdout=log, stderr=log,
+        child = subprocess.Popen(args, cwd=root, env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                  creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
     except OSError as error:
         record('child_start_failed', name=name, executable=str(args[0]),
@@ -37,6 +43,16 @@ def start(args, name, env=None):
         raise
     children.append(child)
     names[child.pid] = name
+    def drain():
+        try:
+            for line in iter(child.stdout.readline, b''):
+                log.emit(logging.LogRecord(name, logging.INFO, '', 0,
+                    line.decode('utf-8', errors='replace').rstrip('\r\n'), (), None))
+        finally:
+            child.stdout.close()
+    reader = threading.Thread(target=drain, name='log-'+name, daemon=True)
+    reader.start()
+    readers.append(reader)
     record('child_started', name=name, pid=child.pid)
     return child
 
@@ -82,5 +98,7 @@ finally:
             except subprocess.TimeoutExpired:
                 child.terminate()
                 child.wait(timeout=5)
+    for reader in readers:
+        reader.join(timeout=5)
     for log in logs:
         log.close()

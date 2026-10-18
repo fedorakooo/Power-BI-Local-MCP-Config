@@ -17,6 +17,10 @@ if ($Setup) {
     if ($installation.identity -ne $identity) { throw 'Run under the original installation owner; credentials are protected with user-scoped DPAPI.' }
     if (!$Credential) { $Credential=Get-Credential -UserName $identity -Message 'Task Scheduler background startup: current installation owner' }
     if (!$Credential -or $Credential.UserName -ne $identity) { throw 'Credential must match the full installation owner identity.' }
+    foreach($privateDirectory in @($runtime,(Join-Path $service 'runtime'))) {
+        & icacls.exe $privateDirectory /inheritance:r /grant:r "${identity}:(OI)(CI)F" 'SYSTEM:(OI)(CI)F' | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw 'Private runtime directory ACL failed' }
+    }
     Write-Host '[1/4] Pin the existing lab SSAS port and enable automatic startup'
     $ssas=& (Join-Path $root 'scripts\Set-StableSSAS.ps1') | ConvertFrom-Json
     $task=$installation.task
