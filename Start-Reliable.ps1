@@ -27,12 +27,14 @@ if ($Setup) {
     $desktopTask=$task+'-Desktop'
     $watchdogTask=$task+'-Health'
     $backupTask=$task+'-Backup'
-    $old=Get-ScheduledTask -TaskName $task
+    # A branding migration can stop and remove the legacy task before the new
+    # STAIR task is registered. Setup must also recover that interrupted state.
+    $old=Get-ScheduledTask -TaskName $task -ErrorAction SilentlyContinue
     if (!(Test-Path (Join-Path $runtime 'task-before-unattended.xml'))) {
         Export-ScheduledTask -TaskName $task | Set-Content (Join-Path $runtime 'task-before-unattended.xml') -Encoding UTF8
     }
     Write-Host '[2/4] Separate background server processes from interactive Desktop'
-    Stop-ScheduledTask -TaskName $task
+    if ($old) { Stop-ScheduledTask -TaskName $task -ErrorAction SilentlyContinue }
     Start-Sleep -Seconds 20
     $python=Join-Path $service '.venv\Scripts\pythonw.exe'
     $script=Join-Path $service 'scripts\run_supergateway.py'
