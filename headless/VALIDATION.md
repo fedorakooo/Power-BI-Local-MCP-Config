@@ -112,3 +112,22 @@ and headless MCP initialized/listed/inspected through Caddy successfully.
 Interactive logon ownership, dynamic SSAS ports, and test-only SQL Developer
 licensing still apply. This synthetic lab validation does not establish unattended
 production operation or arbitrary customer PBIX migration.
+
+### Creating a report through the STAIR agent (2026-10-18)
+
+The headless inventory now includes workspace discovery, new report creation and
+revision-checked page/visual editing, alongside inspection/build. Report Server
+adds reviewed create-only publication to operator-enrolled destinations.
+Twenty-six targeted tests passed across creator scope/backup/revision checks,
+new-publication approvals/non-overwrite/uncertain outcomes, existing publication
+regressions and deployment enrollment preservation. The earlier five thin-report
+scope tests and three bootstrap-preservation tests also passed.
+
+A real local compile produced a new report from declarative page/visual definitions.
+After target deployment and STAIR tool refresh/agent update, the STAIR agent created
+a separate sales report with one page, two KPI cards, a manager slicer and a column
+chart, then compiled a verified 66,984-byte PBIX without Desktop Save. An independent
+download from the Windows host matched the build's SHA256 and confirmed four new
+visuals and no embedded DataModel. The existing SSAS model was reused unchanged.
+New-report publication and visual rendering remain pending the operator approval;
+this is separate from the previously published/rendered two-visual lab report.
