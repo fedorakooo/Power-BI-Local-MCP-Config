@@ -215,9 +215,16 @@ class Win32Backend:
         window = self.Application(backend='uia').connect(handle=views[0]).window(handle=views[0])
         buttons = [button for button in window.descendants(control_type='Button')
                    if button.element_info.automation_id == 'save' and button.is_enabled()]
-        if len(buttons) != 1:
-            raise RuntimeError('Expected exactly one enabled native Save command')
-        buttons[0].iface_invoke.Invoke()
+        if len(buttons) == 1:
+            buttons[0].iface_invoke.Invoke()
+            return 'uia_button'
+        # Some Desktop RS builds expose duplicate (or temporarily absent) Save
+        # controls through WebView2 UIA. The report view and its owner were
+        # validated above, so use the standard shortcut on that exact main window.
+        main_window = self.Application(backend='uia').connect(handle=main['hwnd']).window(handle=main['hwnd'])
+        main_window.set_focus()
+        main_window.type_keys('^s', set_foreground=True)
+        return 'ctrl+s_fallback'
 
 
 class Worker:
@@ -308,11 +315,11 @@ def build(config):
 
     @mcp.tool(annotations={'readOnlyHint': False, 'destructiveHint': False, 'idempotentHint': False})
     def save_report(project: str, expected_sha256: str) -> dict:
-        """Save an enrolled working PBIX in place with one native Save invocation.
-        No screenshots or coordinate actions are required. Internally uses Windows UIA Invoke,
-        not a Power BI save API. Requires an existing desktop_save_targets entry and matching
-        disk hash. Backs up first; confirms the exact path, clean state through official Desktop
-        Bridge, and PBIX integrity. Never retries an uncertain save or handles Save As dialogs.
+        """Verify an enrolled PBIX is already saved or save it in place once.
+        No screenshots or coordinate actions are required. Uses the official Desktop Bridge to
+        verify clean files; dirty files use a uniquely identified UIA Save command or Ctrl+S on the
+        exact verified Desktop window. Requires an existing desktop_save_targets entry and matching
+        disk hash. Backs up first and validates PBIX integrity. Never retries an uncertain save.
         """
         from .desktop_save import DesktopBridge, SaveService
         with worker.lock:

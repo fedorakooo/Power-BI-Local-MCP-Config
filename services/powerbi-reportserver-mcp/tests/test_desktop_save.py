@@ -28,6 +28,7 @@ class SaveTests(unittest.TestCase):
                 test.calls += 1
                 if test.fail: raise RuntimeError('Invoke failed')
                 artifact(test.file, 'after')
+                return 'uia_button'
         class Worker:
             backend = Backend()
             def main(self, project): return {'pid': 2, 'hwnd': 3}
@@ -50,6 +51,15 @@ class SaveTests(unittest.TestCase):
         self.assertNotEqual(result['sha256'], self.before)
         self.assertEqual(sha256(self.service.root / (result['backup_id']+'.pbix')), self.before)
         self.assertEqual(self.busy_reads, 1)
+
+    def test_clean_file_is_verified_without_invoking_disabled_save(self):
+        self.bridge.state = lambda pid: {'currentFilePath': str(self.file), 'hasUnsavedChanges': False}
+        result = self.service.save('demo', self.before)
+        self.assertEqual(result['status'], 'saved_verified')
+        self.assertEqual(result['save_invocation_method'], 'already_saved')
+        self.assertEqual(result['save_invocations'], 0)
+        self.assertEqual(result['sha256'], self.before)
+        self.assertEqual(self.calls, 0)
 
     def test_stale_file_does_not_invoke_save(self):
         with self.assertRaises(ValueError): self.service.save('demo', '0'*64)

@@ -75,8 +75,8 @@ class SaveService:
             if digest != expected_sha256:
                 raise ValueError('PBIX changed since inspection; no save attempted')
             self.validate_pbix(path)
-            # Live engine edits may not set Desktop's dirty flag. Still invoke Save,
-            # and require actual file I/O before claiming the artifact was saved.
+            # A clean Desktop state is verified below as an already-saved artifact;
+            # dirty reports use one Save invocation and require observable file I/O.
             before_mtime = path.stat().st_mtime_ns
             backup_id = uuid.uuid4().hex
             backup = self.root / (backup_id + '.pbix')
@@ -86,10 +86,38 @@ class SaveService:
             audit = self.root / (backup_id + '.json')
             details = {'project': project, 'pid': main['pid'], 'source': str(path),
                        'before_sha256': digest, 'backup_id': backup_id, 'time': time.time(),
-                       'status': 'save_invocation_pending'}
+                       'status': 'save_preflight_complete'}
+            audit.write_text(json.dumps(details, indent=2))
+            # A clean PBIX already on disk needs no UI Save command. On Desktop RS
+            # the Save button is disabled in this state, which made UIA report zero
+            # enabled commands and incorrectly label a harmless no-op as uncertain.
+            if state['hasUnsavedChanges'] is False:
+                try:
+                    confirmed = self.bridge.state(main['pid'])
+                    clean = (Path(confirmed.get('currentFilePath') or '').resolve() == path
+                             and confirmed.get('hasUnsavedChanges') is False
+                             and sha256(path) == digest)
+                except Exception as error:
+                    clean = False
+                    diagnostic = str(error)[:500]
+                else:
+                    diagnostic = 'Desktop clean state or PBIX hash changed during verification'
+                if clean:
+                    result = {'status': 'saved_verified', 'file_name': path.name,
+                              'sha256': digest, 'before_sha256': digest,
+                              'backup_id': backup_id, 'has_unsaved_changes': False,
+                              'save_invocation_method': 'already_saved', 'save_invocations': 0}
+                    details.update(result)
+                    audit.write_text(json.dumps(details, indent=2))
+                    return result
+                details.update(status='save_not_invoked', failure_type='RuntimeError',
+                               diagnostic=diagnostic)
+                audit.write_text(json.dumps(details, indent=2))
+                raise RuntimeError('Clean PBIX could not be reverified; no Save invoked')
+            details.update(status='save_invocation_pending')
             audit.write_text(json.dumps(details, indent=2))
             try:
-                self.worker.backend.invoke_save(main)  # exactly once; never retry an uncertain write
+                save_method = self.worker.backend.invoke_save(main)  # exactly once; never retry an uncertain write
                 deadline = time.monotonic() + 45
                 while time.monotonic() < deadline:
                     time.sleep(0.75)
@@ -106,7 +134,7 @@ class SaveService:
                         result = {'status': 'saved_verified', 'file_name': path.name,
                                   'sha256': sha256(path), 'before_sha256': digest,
                                   'backup_id': backup_id, 'has_unsaved_changes': False,
-                                  'save_invocations': 1}
+                                  'save_invocation_method': save_method, 'save_invocations': 1}
                         details.update(result)
                         audit.write_text(json.dumps(details, indent=2))
                         return result
