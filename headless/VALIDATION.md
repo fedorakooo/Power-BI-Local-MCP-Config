@@ -133,6 +133,10 @@ After the operator issued a hash/path-bound create approval, a separate STAIR ru
 published the new report once with status verified. The agent's post-upload backup
 and an independent catalog download both matched the approved artifact SHA256.
 The live create-only API and subsequent alias-based list/link/backup operations
-passed on the target installation. New-report rendering and slicer interaction
-still require operator verification; the previously rendered two-visual lab report
-is separate evidence.
+passed on the target installation. The operator subsequently opened the new report
+and explicitly confirmed that visuals and the manager filter work. This completes
+the requested synthetic report creation/build/publication/rendering workflow through
+STAIR with operator confirmation of the UI; no automated rendering screenshot or
+independent assertion of the displayed numeric values was obtained. Production
+licensing, stable SSAS endpoints and operation without interactive logon remain
+separate work.
