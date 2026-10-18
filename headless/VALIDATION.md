@@ -140,3 +140,21 @@ STAIR with operator confirmation of the UI; no automated rendering screenshot or
 independent assertion of the displayed numeric values was obtained. Production
 licensing, stable SSAS endpoints and operation without interactive logon remain
 separate work.
+
+### Automatic publication through STAIR (2026-10-18)
+
+Commit 77afb1a was deployed on 10.26.10.26. The operator enabled automatic
+create/publish for actor fedaraka and aliases sales-new/staging; restore remains
+operator-approved. STAIR toolset 5570 was refreshed to seven tools, including
+get_publication_policy, and agent 10665 was updated to follow the returned policy.
+Headless toolset 5814 guidance was aligned with that workflow.
+
+STAIR run 1495 rebuilt the existing fedaraka-dynamic-sales project and published
+sales-new without an approval ID. The persistent operation journal recorded
+status=verified and publication_mode=automatic. An independent server-side catalog
+download matched the build SHA256
+cb00949b8491d3e84a3f594408d0f67a62b0962d6f5d4962c64a0c26ef19f733.
+The downloaded ZIP was valid, with one page, four visuals and no embedded DataModel.
+Fresh pre-update server-hash checks, backups and persistent uncertain-write guards
+remain enforced. This test did not perform a new browser rendering check; the
+previous operator confirmation applies to the report visuals and filter.

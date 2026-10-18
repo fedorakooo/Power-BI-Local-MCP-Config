@@ -198,7 +198,8 @@ Repeat Setup after updating trust. The variable applies to the Caddy Python down
 not every tool in the installation. GitHub release assets and redirects must also be reachable.
 
 Desktop requires an unlocked interactive Windows session. The Save MCP tool invokes Windows
-UI Automation internally. Publication requires an operator-issued one-use approval.
+UI Automation internally. Publication follows the configured actor/report policy:
+operator-issued one-use approval by default, or explicitly enabled automatic publication.
 The HTTP transport defaults to loopback access; remote use requires explicit network rules
 and HTTPS/authentication appropriate to your environment.
 
