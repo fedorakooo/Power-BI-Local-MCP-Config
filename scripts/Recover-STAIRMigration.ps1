@@ -36,8 +36,10 @@ if((Test-Path $oldProject) -and !(Test-Path $newProject)){Move-Item -LiteralPath
 # Validate current canonical routes; legacy aliases stay live while STAIR toolsets refresh.
 $caddy=Join-Path $service 'gateway\Caddyfile';$caddyText=Get-Content $caddy -Raw
 foreach($route in @('modeling','reportserver','authoring','desktop','headless')){if($caddyText -notmatch ('handle_path /stair-powerbi-'+$route+'/\*')){throw ('Missing canonical STAIR route: '+$route)}}
-& (Join-Path $service 'runtime\bin\caddy.exe') validate --config $caddy --adapter caddyfile
-if($LASTEXITCODE -ne 0){throw 'Caddy configuration validation failed.'}
+$previousErrorAction=$ErrorActionPreference;$ErrorActionPreference='Continue'
+& (Join-Path $service 'runtime\bin\caddy.exe') validate --config $caddy --adapter caddyfile 2>$null
+$caddyExit=$LASTEXITCODE;$ErrorActionPreference=$previousErrorAction
+if($caddyExit -ne 0){throw 'Caddy configuration validation failed.'}
 # Clone the existing restricted firewall policy under the STAIR task name.
 $oldTask='Fedaraka-PowerBI-MCP-D2AD4272';$newTask=[string]$installation.task
 foreach($oldName in @($oldTask,$oldTask+'-Backends')){
