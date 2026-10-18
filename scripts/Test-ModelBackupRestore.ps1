@@ -32,6 +32,8 @@ try {
     } finally { $connection.Dispose() }
     $result=@{status='encrypted_backup_restore_verified';backup_sha256=$backup.model_sha256;source_database_unchanged=$true;restore_target=$name;values_verified=$true;off_machine=$false}
     $result | ConvertTo-Json | Set-Content (Join-Path $Root 'runtime\model-restore-evidence.json') -Encoding UTF8
+    $backup.restore_tested=$true
+    $backup | ConvertTo-Json | Set-Content (Join-Path $Root 'runtime\last-model-backup.json') -Encoding UTF8
     $result | ConvertTo-Json
 } finally {
     if ($created) {
