@@ -54,7 +54,13 @@ function Stop-OwnedProcesses {
           $_.CommandLine.Contains('pbirs_mcp.headless_build')))
     } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
 }
-if ($Stop) { Stop-OwnedProcesses; Write-Host "Stopped this deployment: $taskName. Desktop remains open."; return }
+if ($Stop) {
+    if (Get-ScheduledTask -TaskName ($taskName+'-Health') -ErrorAction SilentlyContinue) {
+        Stop-ScheduledTask -TaskName ($taskName+'-Health')
+        Disable-ScheduledTask -TaskName ($taskName+'-Health') | Out-Null
+    }
+    Stop-OwnedProcesses; Write-Host "Stopped this deployment: $taskName. Desktop remains open."; return
+}
 if ($Status) {
     Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue | Select-Object TaskName,State
     if (Test-Path (Join-Path $runtime 'last-startup.json')) { Get-Content (Join-Path $runtime 'last-startup.json') }
@@ -253,6 +259,7 @@ if ($HeadlessPort) {
 Start-DeploymentStage 'Start HTTP gateways'
 Set-DeploymentDetail 0 1 'Check the frontend port and start or reuse the scheduled gateway task'
 $task = Get-ScheduledTask -TaskName $taskName -ErrorAction Stop
+if (Get-ScheduledTask -TaskName ($taskName+'-Health') -ErrorAction SilentlyContinue) { Enable-ScheduledTask -TaskName ($taskName+'-Health') | Out-Null }
 $taskActionChanged = $false
 # Migrate only the exact legacy action belonging to this installation.
 if (@($task.Actions).Count -eq 1 -and $task.Actions[0].Execute -eq $venvPython) {

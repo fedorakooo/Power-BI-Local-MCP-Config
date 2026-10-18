@@ -225,5 +225,9 @@ try {
     } else {
         Write-Host 'This endpoint is local only. Use -WithPowerBIStack to configure its route through the existing IP-restricted Caddy frontend.'
     }
-    Write-Host 'SSAS lab uses a dynamic port; rerun this script after SSAS restarts. No automatic Windows reboot or production publication.'
+    if (Test-Path (Join-Path $root 'runtime\unattended.json')) {
+        Write-Host 'SSAS lab uses the pinned port and background startup. Developer licensing remains test-only; no automatic Windows reboot.'
+    } else {
+        Write-Host 'SSAS lab uses a dynamic port; rerun this script after SSAS restarts. No automatic Windows reboot or production publication.'
+    }
 } finally { Write-Progress -Id 71 -Activity 'Configure and start Power BI headless MCP' -Completed }

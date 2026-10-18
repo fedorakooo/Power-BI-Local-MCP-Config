@@ -78,6 +78,8 @@ if ($Setup) {
     Start-ScheduledTask -TaskName $cfg.task
 }
 Write-Host '[4/4] Wait for background MCP and catalog readiness'
+$activeConfig=Get-Content -LiteralPath $marker -Raw | ConvertFrom-Json
+Enable-ScheduledTask -TaskName $activeConfig.health_task | Out-Null
 $ready=$false
 for ($i=0;$i -lt 6;$i++) {
     & (Join-Path $root 'scripts\Test-BackgroundHealth.ps1') -Root $root
