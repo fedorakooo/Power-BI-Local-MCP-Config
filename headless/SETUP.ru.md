@@ -76,6 +76,14 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\PowerBI-MCP\scripts\D
 порты и опубликованный PBIX. Вывод с именами учётных записей предназначен для
 внутренней диагностики; не публикуйте его в открытом репозитории.
 
+Если подтверждено отсутствие доступа конкретного Windows-пользователя к тестовой базе,
+`scripts/Grant-HeadlessLabReader.ps1` позволяет оператору явно добавить его в роль Read.
+Запускайте через установленный PowerShell 7 с `-Server localhost:<текущий порт>`,
+`-ClientDirectory C:\PowerBI-MCP\tools\headless\as-client` и `-Member 'COMPUTER\user'`.
+Сначала можно указать `-ValidateOnly`. Скрипт работает только с базой
+`PowerBIMcpHeadlessLab`, проверяет её маркер synthetic-test-data-only и не выдаёт
+права администратора сервера. Он не настраивает роли заказчика или Windows SSO.
+
 ```powershell
 powershell.exe -NoProfile -File C:\PowerBI-MCP\Start-Headless.ps1 -Status
 powershell.exe -NoProfile -File C:\PowerBI-MCP\Start-Headless.ps1 -Stop

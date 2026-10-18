@@ -34,14 +34,15 @@ try {
     $data = Invoke-RestMethod -Uri $uri @common
     foreach ($source in $data.value) {
         $builder = New-Object System.Data.Common.DbConnectionStringBuilder
-        $builder.ConnectionString = $source.ConnectionString
+        # Explicit CLR access avoids PowerShell 5.1's IDictionary property adapter.
+        $builder.set_ConnectionString($source.ConnectionString)
         [pscustomobject]@{
-            Server=$builder['Data Source'];Database=$builder['Initial Catalog'];
+            Server=$builder.get_Item('Data Source');Database=$builder.get_Item('Initial Catalog');
             AuthType=$source.DataModelDataSource.AuthType;
             CredentialRetrieval=$source.CredentialRetrieval;
             ConnectionOverridden=$source.IsConnectionStringOverridden
         } | Format-List | Out-Host
-        if ([string]$builder['Data Source'] -match '^localhost:(\d+)$') {
+        if ([string]$builder.get_Item('Data Source') -match '^localhost:(\d+)$') {
             $matchesCurrentPort = [int]$Matches[1] -in $ports
             Write-Host "Published port matches current test SSAS listener: $matchesCurrentPort"
         }

@@ -15,7 +15,7 @@ files = [root / name for name in (
     'scripts/build_bundle.py', 'scripts/Select-Python.ps1', 'scripts/Test-PythonSelection.ps1', 'scripts/probe_python.py', 'scripts/Diagnose-Startup.ps1', 'scripts/Test-ReportServer.ps1', 'scripts/Test-Desktop.ps1', 'scripts/Stop-PortListeners.ps1', 'scripts/Write-StairEndpoints.ps1',
     'README.md', '.gitattributes', 'LICENSE', 'reports/Fedaraka Server Automated.pbix',
     'headless/README.md', 'headless/VALIDATION.md', 'headless/config.example.json',
-    'scripts/Install-TestSSAS.ps1', 'scripts/Test-HeadlessSSAS.ps1', 'scripts/Diagnose-ReportServerSSAS.ps1',
+    'scripts/Install-TestSSAS.ps1', 'scripts/Test-HeadlessSSAS.ps1', 'scripts/Diagnose-ReportServerSSAS.ps1', 'scripts/Grant-HeadlessLabReader.ps1',
     'Start-Headless.ps1', 'headless.deployment.example.json', 'headless/SETUP.ru.md',
     'scripts/configure_headless.py', 'scripts/check_headless.py', 'scripts/test_headless_setup.py',
     'scripts/start_headless_process.py', 'scripts/Select-HeadlessPowerShell.ps1',
