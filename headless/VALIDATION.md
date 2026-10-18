@@ -129,5 +129,10 @@ a separate sales report with one page, two KPI cards, a manager slicer and a col
 chart, then compiled a verified 66,984-byte PBIX without Desktop Save. An independent
 download from the Windows host matched the build's SHA256 and confirmed four new
 visuals and no embedded DataModel. The existing SSAS model was reused unchanged.
-New-report publication and visual rendering remain pending the operator approval;
-this is separate from the previously published/rendered two-visual lab report.
+After the operator issued a hash/path-bound create approval, a separate STAIR run
+published the new report once with status verified. The agent's post-upload backup
+and an independent catalog download both matched the approved artifact SHA256.
+The live create-only API and subsequent alias-based list/link/backup operations
+passed on the target installation. New-report rendering and slicer interaction
+still require operator verification; the previously rendered two-visual lab report
+is separate evidence.
