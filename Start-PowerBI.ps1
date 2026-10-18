@@ -44,6 +44,7 @@ function Invoke-Checked([string]$Executable, [string[]]$Arguments) {
     if ($LASTEXITCODE -ne 0) { throw ('Command failed: ' + $Executable + ', exit=' + $LASTEXITCODE) }
 }
 function Stop-OwnedProcesses {
+    if (Get-ScheduledTask -TaskName ($taskName+'-Desktop') -ErrorAction SilentlyContinue) { Stop-ScheduledTask -TaskName ($taskName+'-Desktop') }
     if (Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue) { Stop-ScheduledTask -TaskName $taskName }
     Get-CimInstance Win32_Process | Where-Object {
         $_.Name -in @('python.exe','pythonw.exe','node.exe','caddy.exe') -and $_.CommandLine -and
@@ -207,7 +208,13 @@ if ($Setup) {
     $trigger = New-ScheduledTaskTrigger -AtLogOn -User $identity
     $taskPrincipal = New-ScheduledTaskPrincipal -UserId $identity -LogonType Interactive -RunLevel Limited
     $taskSettings = New-ScheduledTaskSettingsSet -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1) -ExecutionTimeLimit ([TimeSpan]::Zero) -MultipleInstances IgnoreNew
-    Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Principal $taskPrincipal -Settings $taskSettings -Force -ErrorAction Stop | Out-Null
+    if (Test-Path (Join-Path $runtime 'unattended.json')) {
+        # Preserve the password-backed background principal and its protected secret.
+        $action = New-ScheduledTaskAction -Execute $supervisorPython -Argument ('"' + $pythonScript + '" --mode background') -WorkingDirectory $service
+        Set-ScheduledTask -TaskName $taskName -Action $action -ErrorAction Stop | Out-Null
+    } else {
+        Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Principal $taskPrincipal -Settings $taskSettings -Force -ErrorAction Stop | Out-Null
+    }
     Set-DeploymentDetail 1 4 'Replace firewall rules for this deployment'
     foreach ($rule in @($taskName,($taskName+'-Backends'))) {
         if (Get-NetFirewallRule -Name $rule -ErrorAction SilentlyContinue) { Remove-NetFirewallRule -Name $rule }
@@ -267,6 +274,7 @@ if ($Restart -or $headlessChanged -or $taskActionChanged -or $task.State -ne 'Ru
     & (Join-Path $root 'scripts\Stop-PortListeners.ps1') -Ports $requiredPorts
     Set-DeploymentDetail 2 3 'Start the scheduled HTTP gateway task'
     Start-ScheduledTask -TaskName $taskName
+    if (Get-ScheduledTask -TaskName ($taskName+'-Desktop') -ErrorAction SilentlyContinue) { Start-ScheduledTask -TaskName ($taskName+'-Desktop') }
 }
 Set-DeploymentDetail 1 1 'Gateway start requested; verify service readiness next'
 Start-DeploymentStage 'Check MCP services, Report Server and Desktop readiness'

@@ -215,3 +215,6 @@ operator publication approval or explicitly enabled actor/report-scoped automati
 publication. In automatic mode no approval ID is needed; artifact/current-server
 hashes, backups and persistent guards against uncertain retries remain enforced.
 Source creation alone does not publish a report.
+
+For stable SSAS ports, boot startup independent of login, and bounded health recovery,
+see [reliable background startup](RELIABILITY.md). Desktop UI operations remain interactive.

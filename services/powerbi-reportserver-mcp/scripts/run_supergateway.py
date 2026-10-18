@@ -5,6 +5,7 @@ import subprocess
 import sys
 import time
 import traceback
+import argparse
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -14,6 +15,9 @@ entry = root / 'gateway/node_modules/supergateway/dist/index.js'
 children = []
 logs = []
 names = {}
+parser = argparse.ArgumentParser()
+parser.add_argument('--mode', choices=['combined', 'background', 'desktop'], default='combined')
+mode = parser.parse_args().mode
 
 
 def record(event, **details):
@@ -42,15 +46,20 @@ try:
     config = json.loads((root / 'gateway/servers.local.json').read_text(encoding='utf-8-sig'))
     node = paths['node']
     for i, (name, server) in enumerate(config['mcpServers'].items()):
+        is_desktop = name == 'fedaraka-powerbi-desktop'
+        if (mode == 'background' and is_desktop) or (mode == 'desktop' and not is_desktop):
+            continue
         command = subprocess.list2cmdline([server['command'], *server['args']])
         env = dict(os.environ, **server.get('env', {}))
         start([node, str(entry), '--stdio', command, '--outputTransport', 'streamableHttp', '--stateful',
                '--sessionTimeout', '900000', '--port', str(server.get('port', 8013 + i)), '--healthEndpoint', '/healthz'], name, env)
     env = dict(os.environ)
-    if (root / 'runtime/headless-supervisor.json').is_file():
+    if mode != 'desktop' and (root / 'runtime/headless-supervisor.json').is_file():
         start([sys.executable, str(root / 'scripts/supervise_headless.py')], 'fedaraka-powerbi-headless', env)
-    start([sys.executable, str(root / 'scripts/supervise_caddy.py')], 'caddy', env)
-    (root / 'runtime/gateway-processes.json').write_text(json.dumps({'supervisor': os.getpid(), 'children': [p.pid for p in children]}))
+    if mode != 'desktop':
+        start([sys.executable, str(root / 'scripts/supervise_caddy.py')], 'caddy', env)
+    process_file = 'desktop-processes.json' if mode == 'desktop' else 'gateway-processes.json'
+    (root / 'runtime' / process_file).write_text(json.dumps({'supervisor': os.getpid(), 'children': [p.pid for p in children]}))
     while all(p.poll() is None for p in children):
         time.sleep(1)
     for child in children:
