@@ -121,6 +121,12 @@ class DynamicReports:
         profile = self.config.get('headless_creation_profiles', {}).get(name)
         if not profile or not profile.get('schema'):
             raise PermissionError('SSAS creation model is not enrolled with a field schema')
+        connection = profile.get('connection_string', '')
+        if not connection or re.search(r'(?i)(?:^|;)\s*(password|pwd|user id|uid)\s*=', connection):
+            raise ValueError('Creation profile must use a credential-free SSAS connection')
+        version = (Path(profile['compatibility_source']) / 'Version.txt').read_text(encoding='utf-8-sig').strip()
+        if version != profile['report_version']:
+            raise ValueError('Creation profile compatibility version differs from its source')
         return profile
 
     def models(self):
@@ -165,6 +171,8 @@ class DynamicReports:
                 for field, kind in [(visual.category, 'columns'), (visual.measure, 'measures')]:
                     if field and field.name not in profile['schema'].get(field.table, {}).get(kind, {}):
                         raise ValueError('Field is not in the operator-enrolled SSAS schema: ' + field.table + '[' + field.name + ']')
+                    if field and kind == 'columns' and profile['schema'][field.table][kind][field.name].get('type') != 'string':
+                        raise ValueError('This compatibility profile supports string category columns only')
         baseline = json.loads((Path(profile['compatibility_source']) / 'Report/report.json').read_text(encoding='utf-8-sig'))
         baseline_config = json.loads(baseline.get('config', '{}'))
         report = {'id': 0, 'resourcePackages': copy.deepcopy(baseline.get('resourcePackages', [])),

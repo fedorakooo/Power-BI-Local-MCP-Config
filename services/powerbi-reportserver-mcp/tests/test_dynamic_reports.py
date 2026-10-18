@@ -51,6 +51,12 @@ class CreationScopeTests(unittest.TestCase):
             self.creator.create('sales-new', 'lab', 'Sales', self.pages)
         self.assertFalse((Path(self.config['headless_creation_root']) / 'sales-new').exists())
 
+    def test_credentials_in_a_profile_cannot_be_written_to_new_sources(self):
+        self.config['headless_creation_profiles']['lab']['connection_string'] += ';Password=not-a-real-secret'
+        with self.assertRaisesRegex(ValueError, 'credential-free'):
+            self.creator.create('sales-new', 'lab', 'Sales', self.pages)
+        self.assertFalse((Path(self.config['headless_creation_root']) / 'sales-new').exists())
+
     def test_stale_updates_are_rejected_and_valid_updates_back_up_layout(self):
         self.creator.create('sales-new', 'lab', 'Sales', self.pages)
         before = self.builder.inspect('sales-new')['revision']

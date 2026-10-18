@@ -2,6 +2,7 @@
 import argparse
 import hashlib
 import json
+import re
 import secrets
 import time
 from pathlib import Path
@@ -34,6 +35,7 @@ def main():
     approve_create.add_argument('--actor', required=True)
     approve_create.add_argument('--report', required=True)
     approve_create.add_argument('--file', required=True)
+    approve_create.add_argument('--expected-sha256')
     args = parser.parse_args()
     path = Path(args.config).resolve()
     if args.command == 'init':
@@ -78,10 +80,13 @@ def main():
         source = Path(args.file).resolve()
         if not source.is_relative_to(service.release) or source.suffix.lower() != '.pbix' or not source.is_file():
             raise SystemExit('Approval requires an existing PBIX inside release_root')
+        digest = sha256(source)
+        if args.expected_sha256 and (not re.fullmatch('[0-9a-f]{64}', args.expected_sha256) or digest != args.expected_sha256):
+            raise SystemExit('Artifact differs from the reviewed SHA256; no approval issued')
         ensure_absent(service, args.actor, target_path)
         approval_id = secrets.token_hex(16)
         approval = dict(actor=args.actor, report=args.report, action='create', target_path=target_path,
-                        sha256=sha256(source), expires_at=time.time() + 900)
+                        sha256=digest, expires_at=time.time() + 900)
         (service.root / 'approvals' / (approval_id + '.json')).write_text(json.dumps(approval), encoding='utf-8')
         print('Create approval valid for 15 minutes: ' + approval_id)
     elif args.command == 'enroll':
@@ -99,7 +104,6 @@ def main():
         permitted_root = service.release if args.action == 'publish' else service.root / 'backups'
         if not source.is_relative_to(permitted_root) or source.suffix.lower() != '.pbix':
             raise SystemExit('Approval file must be inside release_root or backup directory')
-        import re
         if not re.fullmatch('[0-9a-f]{64}', args.expected_current_sha256):
             raise SystemExit('Expected SHA256 must contain 64 lowercase hex digits')
         approval_id = secrets.token_hex(16)

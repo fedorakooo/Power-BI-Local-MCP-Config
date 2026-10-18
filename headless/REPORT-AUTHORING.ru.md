@@ -18,7 +18,8 @@ Headless MCP умеет создавать новый thin-report на заре�
 - `build_headless_report`: новая уникальная сборка PBIX с проверкой layout,
   подключения и SHA256.
 
-Поддержаны `card`, `columnChart`, `slicer`; холст 1280x720, до 8 страниц и 20 визуалов
+Поддержаны `card`, `columnChart`, `slicer`, строковые категории и числовые меры;
+холст 1280x720, до 8 страниц и 20 визуалов
 на странице. Публикация и права SSAS — отдельные операции. Созданные проекты
 хранятся в `headless/created-reports/` и исключены из Git.
 
@@ -49,6 +50,10 @@ Set-Location C:\PowerBI-MCP\services\powerbi-reportserver-mcp
 ```powershell
 .\.venv\Scripts\python.exe -m pbirs_mcp.admin --config config.local.json approve-create --actor fedaraka --report sales-new --file 'C:\PowerBI-MCP\services\powerbi-reportserver-mcp\runtime\release\REVIEWED-BUILD.pbix'
 ```
+
+Для одной команды из любого каталога используйте `scripts/Approve-NewReport.ps1`
+с `-Destination sales-new -FileName REVIEWED-BUILD.pbix -ExpectedSha256 <проверенный SHA256>`.
+Wrapper передаёт ожидаемый hash операторской CLI; при несовпадении approval не выдаётся.
 
 Разрешение связывает пользователя MCP, destination, полный путь отчёта и SHA256
 файла; действует 15 минут. Операторская CLI не предоставляется агенту как MCP.
