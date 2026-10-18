@@ -52,16 +52,8 @@ if ($Setup) {
     if ($LASTEXITCODE -ne 0) { throw 'Model backup ACL failed' }
     & icacls.exe $sourceBackup /inheritance:r /grant:r "${identity}:(OI)(CI)F" 'SYSTEM:(OI)(CI)F' | Out-Null
     if ($LASTEXITCODE -ne 0) { throw 'Source backup ACL failed' }
-    $backupCredential=Join-Path $runtime 'model-backup-credential.xml'
-    if (!(Test-Path -LiteralPath $backupCredential)) {
-        $bytes=New-Object byte[] 32
-        $rng=[Security.Cryptography.RandomNumberGenerator]::Create()
-        try { $rng.GetBytes($bytes) } finally { $rng.Dispose() }
-        $secure=ConvertTo-SecureString ([Convert]::ToBase64String($bytes)) -AsPlainText -Force
-        (New-Object Management.Automation.PSCredential('ssas-backup',$secure)) | Export-Clixml -LiteralPath $backupCredential
-        & icacls.exe $backupCredential /inheritance:r /grant:r "${identity}:F" 'SYSTEM:F' | Out-Null
-        if ($LASTEXITCODE -ne 0) { throw 'Backup credential ACL failed' }
-    }
+    # Backup task creates its DPAPI credential under a password-backed logon.
+    # Public-key SSH logons cannot reliably initialize a user's DPAPI master key.
     @{task=$task;desktop_task=$desktopTask;health_task=$watchdogTask;backup_task=$backupTask;identity=$identity;ssas_port=$ssas.port;mode='background-plus-interactive-desktop';model_backup_directory=$modelBackup;source_backup_directory=$sourceBackup} | ConvertTo-Json | Set-Content $marker -Encoding UTF8
     $healthAction=New-ScheduledTaskAction -Execute 'powershell.exe' -Argument ('-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "'+(Join-Path $root 'scripts\Test-BackgroundHealth.ps1')+'" -Root "'+$root+'" -Recover') -WorkingDirectory $root
     $healthTrigger=New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(5) -RepetitionInterval (New-TimeSpan -Minutes 5)

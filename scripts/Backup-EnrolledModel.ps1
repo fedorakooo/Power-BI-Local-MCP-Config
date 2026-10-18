@@ -7,7 +7,20 @@ $client=Join-Path $Root 'tools\headless\as-client'
 foreach($assembly in @('Microsoft.Identity.Client','Microsoft.Identity.Client.Broker','Microsoft.AnalysisServices.Runtime.Core','Microsoft.AnalysisServices.Runtime.Windows','Microsoft.AnalysisServices.Core','Microsoft.AnalysisServices.Tabular.Json','Microsoft.AnalysisServices.Tabular')) {
     [void][Reflection.Assembly]::LoadFrom((Join-Path $client ($assembly+'.dll')))
 }
-$password=Import-Clixml -LiteralPath (Join-Path $Root 'runtime\model-backup-credential.xml')
+$credentialFile=Join-Path $Root 'runtime\model-backup-credential.xml'
+if (!(Test-Path -LiteralPath $credentialFile)) {
+    $bytes=New-Object byte[] 32
+    $rng=[Security.Cryptography.RandomNumberGenerator]::Create()
+    try { $rng.GetBytes($bytes) } finally { $rng.Dispose() }
+    $secure=ConvertTo-SecureString ([Convert]::ToBase64String($bytes)) -AsPlainText -Force
+    $pending=$credentialFile+'.pending'
+    (New-Object Management.Automation.PSCredential('ssas-backup',$secure)) | Export-Clixml -LiteralPath $pending
+    $owner=[Security.Principal.WindowsIdentity]::GetCurrent().Name
+    & icacls.exe $pending /inheritance:r /grant:r "${owner}:F" 'SYSTEM:F' | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw 'Backup credential ACL failed' }
+    Move-Item -LiteralPath $pending -Destination $credentialFile
+}
+$password=Import-Clixml -LiteralPath $credentialFile
 $server=New-Object Microsoft.AnalysisServices.Tabular.Server
 try {
     $server.Connect('Data Source=localhost:'+$cfg.ssas_port+';Integrated Security=SSPI;')
