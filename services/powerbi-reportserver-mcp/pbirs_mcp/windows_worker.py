@@ -87,15 +87,17 @@ class Win32Backend:
         self.ensure_unlocked()
         wrapper = self.Application(backend='win32').connect(handle=main['hwnd']).window(handle=main['hwnd']).wrapper_object()
         foreground = self.gui.GetForegroundWindow()
-        if self.gui.GetAncestor(foreground, 3) != main['hwnd']:
+        # RDP/window transitions can temporarily leave no foreground HWND.
+        # GetAncestor(0) raises ERROR_INVALID_WINDOW_HANDLE before focus can recover.
+        if not foreground or not self.gui.IsWindow(foreground) or self.gui.GetAncestor(foreground, 3) != main['hwnd']:
             wrapper.set_focus()
         import ctypes
         hwnd = ctypes.windll.user32.GetLastActivePopup(main['hwnd'])
-        if not self.gui.IsWindowVisible(hwnd):
+        if not hwnd or not self.gui.IsWindow(hwnd) or not self.gui.IsWindowVisible(hwnd):
             hwnd = main['hwnd']
         # Focused file dialogs can be owned popups. Never select unrelated foreground apps.
         focused = self.gui.GetForegroundWindow()
-        if self.gui.GetAncestor(focused, 3) == main['hwnd']:
+        if focused and self.gui.IsWindow(focused) and self.gui.GetAncestor(focused, 3) == main['hwnd']:
             hwnd = focused
         dialogs = []
         def find_dialog(candidate, _):
@@ -109,7 +111,7 @@ class Win32Backend:
             raise RuntimeError('Multiple file dialogs without an active owned popup; observe again')
         if len(dialogs) == 1:
             hwnd = dialogs[0]
-        if self.gui.GetAncestor(hwnd, 3) != main['hwnd'] and hwnd != main['hwnd']:
+        if hwnd != main['hwnd'] and self.gui.GetAncestor(hwnd, 3) != main['hwnd']:
             raise RuntimeError('Unexpected foreground window; refusing to capture or control another application')
         target = self.Application(backend='win32').connect(handle=hwnd).window(handle=hwnd).wrapper_object()
         if self.gui.GetForegroundWindow() != hwnd:
@@ -326,8 +328,11 @@ def build(config):
             return SaveService(config, worker, DesktopBridge(config)).save(project, expected_sha256)
 
     @mcp.tool(annotations={'readOnlyHint': True})
-    def get_dashboard_preview(project: str, page_name: str = 'Page 1') -> list[TextContent | ImageContent]:
+    def get_dashboard_preview(project: str, page_name: str | None = None) -> list[TextContent | ImageContent]:
         """Return a report-page image through the official Desktop Bridge API.
+        Omit page_name to preview the first saved page and discover all saved page names.
+        Metadata includes the verified Desktop PID and its child model_engine_pids. Match these
+        to Modeling ListLocalInstances processId when background-session window titles are empty.
         No screen coordinates, mouse or keyboard are used. Requires the exact enrolled PBIX
         open in Desktop. The image shows current filter state; it is not a Report Server render.
         """
@@ -346,13 +351,15 @@ def build(config):
             with zipfile.ZipFile(path) as archive:
                 if 'Report/Layout' in archive.namelist():
                     report = json.loads(archive.read('Report/Layout').decode('utf-16-le'))
-                    pages = [{'id': p['name'], 'name': p['displayName']} for p in report['sections']]
+                    pages = [{'id': p['name'], 'name': p['displayName'],
+                              'visual_container_count': len(p.get('visualContainers', []))}
+                             for p in sorted(report['sections'], key=lambda p: p.get('ordinal', 0))]
                 else:
                     for name in archive.namelist():
                         if re.fullmatch(r'Report/definition/pages/[A-Za-z0-9_-]+/page.json', name):
                             page = json.loads(archive.read(name))
                             pages.append({'id': page['name'], 'name': page['displayName']})
-            selected = [p for p in pages if p['name'] == page_name]
+            selected = pages[:1] if page_name is None else [p for p in pages if p['name'] == page_name]
             if len(selected) != 1:
                 raise ValueError('Expected one saved page with that display name')
             directory = Path(config['data_root']) / 'dashboard-previews'
@@ -369,7 +376,8 @@ def build(config):
             png = image_path.read_bytes()
             if not png.startswith(b'\x89PNG\r\n\x1a\n'):
                 raise RuntimeError('Desktop Bridge did not return a PNG')
-            metadata = {'project': project, 'page': page_name, 'file_name': path.name,
+            metadata = {'project': project, 'page': selected[0]['name'], 'pages': pages, 'file_name': path.name,
+                        'desktop_pid': main['pid'], 'model_engine_pids': bridge.model_engine_pids(main['pid']),
                         'file_sha256': sha256(path), 'source': 'Desktop Bridge API', 'image_path': str(image_path)}
             image_path.with_suffix('.json').write_text(json.dumps(metadata, indent=2))
             return [TextContent(type='text', text=json.dumps(metadata)),

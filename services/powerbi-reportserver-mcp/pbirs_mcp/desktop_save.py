@@ -32,6 +32,31 @@ class DesktopBridge:
             raise RuntimeError('Expected the exact enrolled Desktop Bridge instance')
         return instances[0]
 
+    @staticmethod
+    def model_engine_pids(pid):
+        """Correlate only msmdsrv children of the verified enrolled Desktop PID.
+
+        Modeling MCP runs in a background session and may not see window titles.
+        Empty/failed discovery is explicitly unavailable, never a guessed port.
+        """
+        if isinstance(pid, bool) or not isinstance(pid, int) or pid <= 0:
+            raise ValueError('Expected a positive Desktop process ID')
+        command = (f'Get-CimInstance Win32_Process -Filter "Name=\'msmdsrv.exe\' AND ParentProcessId={pid}" '
+                   '| Select-Object -ExpandProperty ProcessId | ConvertTo-Json -Compress')
+        try:
+            result = subprocess.run(['powershell.exe', '-NoProfile', '-NonInteractive', '-Command', command],
+                capture_output=True, text=True, encoding='utf-8', timeout=15,
+                creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+            if result.returncode or not result.stdout.strip():
+                return []
+            values = json.loads(result.stdout)
+            values = values if isinstance(values, list) else [values]
+            if not all(isinstance(value, int) and not isinstance(value, bool) and value > 0 for value in values):
+                return []
+            return sorted(set(values))
+        except (OSError, ValueError, subprocess.TimeoutExpired):
+            return []
+
 
 class SaveService:
     def __init__(self, config, worker, bridge):
